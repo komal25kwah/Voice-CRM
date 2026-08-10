@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Voice CRM Assistant</title>
+
+
+    <!-- =========================================
+         CSS
+    ========================================== -->
+
+    <link
+        rel="stylesheet"
+        href="employee.css"
+    >
+
+
+    <!-- =========================================
+         GOOGLE FONT
+    ========================================== -->
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================================
+         MAIN CONTAINER
+    ========================================== -->
+
+    <div class="container">
+
+
+        <!-- =========================================
+             MAIN CARD
+        ========================================== -->
+
+        <div class="card">
+
+
+            <!-- =========================================
+                 HEADER
+            ========================================== -->
+
+            <div class="header">
+
+                <h1>
+                    🎤 Voice CRM Assistant
+                </h1>
+
+
+                <p>
+
+                    Upload or record your customer visit
+                    summary.
+
+                    AI will automatically process your
+                    visit information.
+
+                </p>
+
+            </div>
+
+
+
+            <!-- =========================================
+                 EMPLOYEE FORM
+            ========================================== -->
+
+            <form id="uploadForm">
+
+
+                <!-- =====================================
+                     EMPLOYEE NAME
+                ====================================== -->
+
+                <div class="input-group">
+
+                    <label for="employeeName">
+
+                        Employee Name
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        id="employeeName"
+                        placeholder="Enter your name"
+                        required
+                    >
+
+                </div>
+
+
+
+                <!-- =====================================
+                     RECORDING BUTTONS
+                ====================================== -->
+
+                <div class="record-section">
+
+
+                    <!-- Start Recording -->
+
+                    <button
+                        type="button"
+                        id="recordBtn"
+                        class="secondary-btn"
+                    >
+
+                        🎤 Start Recording
+
+                    </button>
+
+
+                    <!-- Stop Recording -->
+
+                    <button
+                        type="button"
+                        id="stopBtn"
+                        class="secondary-btn"
+                        disabled
+                    >
+
+                        ⏹ Stop Recording
+
+                    </button>
+
+
+                </div>
+
+
+
+                <!-- =====================================
+                     DIVIDER
+                ====================================== -->
+
+                <div class="divider">
+
+                    <span>
+                        OR
+                    </span>
+
+                </div>
+
+
+
+                <!-- =====================================
+                     AUDIO UPLOAD
+                ====================================== -->
+
+                <div class="input-group">
+
+                    <label for="audioFile">
+
+                        Upload Audio File
+
+                    </label>
+
+
+                    <input
+                        type="file"
+                        id="audioFile"
+                        accept="audio/*"
+                    >
+
+                </div>
+
+
+
+                <!-- =====================================
+                     AUDIO PREVIEW
+                ====================================== -->
+
+                <div
+                    id="audioPreview"
+                    class="hidden"
+                >
+
+
+                    <h3>
+
+                        🎧 Preview Recording
+
+                    </h3>
+
+
+                    <!-- Audio Player -->
+
+                    <audio
+                        id="audioPlayer"
+                        controls
+                    >
+                    </audio>
+
+
+                    <!-- Preview Buttons -->
+
+                    <div class="preview-buttons">
+
+
+                        <button
+                            type="button"
+                            id="deleteRecording"
+                            class="delete-btn"
+                        >
+
+                            🗑 Delete Recording
+
+                        </button>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =====================================
+                     SUBMIT AUDIO
+                ====================================== -->
+
+                <button
+                    type="submit"
+                    class="submit-btn"
+                >
+
+                    🎙 Submit Audio
+
+                </button>
+
+
+            </form>
+
+
+
+            <!-- =========================================
+                 LOADING
+            ========================================== -->
+
+            <div
+                id="loading"
+                class="loading hidden"
+            >
+
+                ⏳ Processing audio...
+
+                <br>
+                <br>
+
+                Please wait while AI converts your
+                audio into an English transcript.
+
+            </div>
+
+
+
+            <!-- =========================================
+                 STEP 2
+                 TRANSCRIPT REVIEW
+            ========================================== -->
+
+            <section
+                id="transcriptSection"
+                class="transcript-section hidden"
+            >
+
+
+                <!-- =====================================
+                     STEP 2 HEADER
+                ====================================== -->
+
+                <div class="transcript-header">
+
+
+                    <span class="step-badge">
+
+                        STEP 2
+
+                    </span>
+
+
+                    <h2>
+
+                        Review Your Transcript
+
+                    </h2>
+
+
+                    <p>
+
+                        We converted your audio into English.
+                        Please review the transcript carefully
+                        and correct anything if needed.
+
+                    </p>
+
+
+                </div>
+
+
+
+                <!-- =====================================
+                     TRANSCRIPT CARD
+                ====================================== -->
+
+                <div class="transcript-card">
+
+
+                    <label for="transcriptText">
+
+                        English Transcript
+
+                    </label>
+
+
+                    <!--
+                        AI-generated transcript will
+                        appear here.
+
+                        It is disabled initially.
+
+                        JavaScript will enable it when
+                        employee clicks "Edit Transcript".
+                    -->
+
+                    <textarea
+                        id="transcriptText"
+                        placeholder="Your English transcript will appear here..."
+                        spellcheck="true"
+                        disabled
+                    ></textarea>
+
+
+                    <div class="transcript-info">
+
+                        ✨ AI-generated transcript.
+                        Please review it before continuing.
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =====================================
+                     TRANSCRIPT ACTION BUTTONS
+                ====================================== -->
+
+                <div class="transcript-actions">
+
+
+                    <!-- Edit Transcript -->
+
+                    <button
+                        type="button"
+                        id="editTranscriptBtn"
+                        class="secondary-btn"
+                    >
+
+                        ✏️ Edit Transcript
+
+                    </button>
+
+
+                    <!-- Continue -->
+
+                    <button
+                        type="button"
+                        id="continueTranscriptBtn"
+                        class="primary-btn"
+                    >
+
+                        Continue →
+
+                    </button>
+
+
+                </div>
+
+
+
+                <!-- =====================================
+                     TRANSCRIPT STATUS
+                ====================================== -->
+
+                <div
+                    id="transcriptStatus"
+                    class="transcript-status"
+                >
+
+                </div>
+
+
+            </section>
+
+
+
+            <!-- =========================================
+                 SUCCESS MESSAGE
+            ========================================== -->
+
+            <div
+                id="success"
+                class="result hidden"
+            >
+
+
+                <h2>
+
+                    ✅ Report Submitted Successfully
+
+                </h2>
+
+
+                <p>
+
+                    Your CRM report has been securely saved.
+
+                </p>
+
+
+                <br>
+
+
+                <strong>
+
+                    Reference ID:
+
+                    <span id="recordId">
+
+                        ---
+
+                    </span>
+
+                </strong>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =========================================
+         JAVASCRIPT
+    ========================================== -->
+
+    <script src="employee.js"></script>
+
+
+</body>
+
+</html>

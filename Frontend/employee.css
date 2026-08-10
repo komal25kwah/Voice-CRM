@@ -1,0 +1,702 @@
+/* ===================================
+   GLOBAL
+=================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background: #f4f7fb;
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 40px;
+
+    color: #1e293b;
+}
+
+
+/* ===================================
+   CONTAINER
+=================================== */
+
+.container {
+    width: 100%;
+    max-width: 850px;
+}
+
+.card {
+    background: #fff;
+
+    border-radius: 18px;
+
+    padding: 45px;
+
+    box-shadow: 0 15px 40px rgba(0, 0, 0, .08);
+}
+
+
+/* ===================================
+   HEADER
+=================================== */
+
+.header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.header h1 {
+    font-size: 34px;
+    color: #0057B8;
+    margin-bottom: 10px;
+}
+
+.header p {
+    color: #64748b;
+    line-height: 26px;
+    font-size: 15px;
+}
+
+
+/* ===================================
+   INPUTS
+=================================== */
+
+.input-group {
+    margin-bottom: 22px;
+}
+
+.input-group label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-weight: 600;
+
+    color: #334155;
+}
+
+.input-group input {
+    width: 100%;
+
+    height: 52px;
+
+    border: 1px solid #d9e2ec;
+
+    border-radius: 10px;
+
+    padding: 0 16px;
+
+    font-size: 15px;
+
+    transition: .3s;
+}
+
+.input-group input:focus {
+    outline: none;
+
+    border-color: #0057B8;
+
+    box-shadow: 0 0 0 4px rgba(0, 87, 184, .12);
+}
+
+
+/* ===================================
+   RECORD BUTTONS
+=================================== */
+
+.record-section {
+    display: flex;
+
+    gap: 15px;
+
+    margin: 25px 0;
+}
+
+.record-section .secondary-btn {
+    flex: 1;
+
+    height: 50px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #eef5ff;
+
+    color: #0057B8;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+.record-section .secondary-btn:hover {
+    background: #0057B8;
+
+    color: #fff;
+}
+
+.record-section .secondary-btn:disabled {
+    opacity: .5;
+
+    cursor: not-allowed;
+}
+
+
+/* ===================================
+   DIVIDER
+=================================== */
+
+.divider {
+    display: flex;
+
+    align-items: center;
+
+    margin: 30px 0;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+
+    flex: 1;
+
+    height: 1px;
+
+    background: #d7dde5;
+}
+
+.divider span {
+    padding: 0 15px;
+
+    color: #64748b;
+
+    font-weight: 600;
+}
+
+
+/* ===================================
+   FILE INPUT
+=================================== */
+
+#audioFile {
+    padding: 12px;
+}
+
+
+/* ===================================
+   SUBMIT BUTTON
+=================================== */
+
+.submit-btn {
+    width: 100%;
+
+    height: 56px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: linear-gradient(
+        90deg,
+        #0057B8,
+        #00AEEF
+    );
+
+    color: white;
+
+    font-size: 17px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: .3s;
+
+    margin-top: 20px;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 12px 25px rgba(0, 87, 184, .25);
+}
+
+
+/* ===================================
+   LOADING
+=================================== */
+
+.loading {
+    margin-top: 30px;
+
+    padding: 18px;
+
+    border-radius: 10px;
+
+    background: #eef7ff;
+
+    border-left: 5px solid #00AEEF;
+
+    color: #0057B8;
+
+    font-weight: 600;
+}
+
+
+/* ===================================
+   SUCCESS CARD
+=================================== */
+
+.result {
+    margin-top: 30px;
+
+    padding: 25px;
+
+    border-radius: 12px;
+
+    background: #f0fff4;
+
+    border-left: 6px solid #16a34a;
+}
+
+.result h2 {
+    color: #15803d;
+
+    margin-bottom: 10px;
+}
+
+.result p {
+    color: #334155;
+
+    line-height: 25px;
+}
+
+.result strong {
+    display: block;
+
+    margin-top: 15px;
+
+    color: #15803d;
+
+    font-size: 17px;
+}
+
+
+/* ===================================
+   HIDDEN
+=================================== */
+
+.hidden {
+    display: none !important;
+}
+
+
+/* ===================================
+   AUDIO PREVIEW
+=================================== */
+
+#audioPreview {
+    margin-top: 25px;
+
+    padding: 20px;
+
+    border: 1px solid #dbe7f4;
+
+    border-radius: 12px;
+
+    background: #f8fbff;
+}
+
+#audioPreview h3 {
+    color: #0057B8;
+
+    margin-bottom: 15px;
+
+    font-size: 18px;
+}
+
+#audioPlayer {
+    width: 100%;
+
+    margin-bottom: 18px;
+}
+
+
+/* ===================================
+   PREVIEW BUTTONS
+=================================== */
+
+.preview-buttons {
+    display: flex;
+
+    gap: 15px;
+
+    margin-top: 10px;
+}
+
+.delete-btn {
+    flex: 1;
+
+    height: 50px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #dc2626;
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+.delete-btn:hover {
+    background: #b91c1c;
+}
+
+.play-btn {
+    flex: 1;
+
+    height: 50px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #16a34a;
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+.play-btn:hover {
+    background: #15803d;
+}
+
+
+/* ==========================================
+   STEP 2 - TRANSCRIPT REVIEW
+========================================== */
+
+.transcript-section {
+    margin-top: 30px;
+
+    padding: 28px;
+
+    border-radius: 16px;
+
+    background: #ffffff;
+
+    border: 1px solid #dbe7f4;
+
+    box-shadow: 0 8px 25px rgba(0, 0, 0, .06);
+}
+
+
+/* ==========================================
+   TRANSCRIPT HEADER
+========================================== */
+
+.transcript-header {
+    margin-bottom: 22px;
+}
+
+.step-badge {
+    display: inline-block;
+
+    padding: 6px 12px;
+
+    border-radius: 20px;
+
+    background: #eef5ff;
+
+    color: #0057B8;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    letter-spacing: .5px;
+}
+
+.transcript-header h2 {
+    margin-top: 12px;
+
+    margin-bottom: 8px;
+
+    color: #1e293b;
+
+    font-size: 24px;
+}
+
+.transcript-header p {
+    margin: 0;
+
+    color: #64748b;
+
+    line-height: 1.6;
+
+    font-size: 14px;
+}
+
+
+/* ==========================================
+   TRANSCRIPT CARD
+========================================== */
+
+.transcript-card {
+    margin-top: 20px;
+}
+
+.transcript-card label {
+    display: block;
+
+    margin-bottom: 10px;
+
+    font-weight: 600;
+
+    color: #334155;
+}
+
+
+/* ==========================================
+   TRANSCRIPT TEXTAREA
+========================================== */
+
+#transcriptText {
+    width: 100%;
+
+    min-height: 190px;
+
+    padding: 16px;
+
+    border: 1px solid #d9e2ec;
+
+    border-radius: 12px;
+
+    font-family: 'Inter', sans-serif;
+
+    font-size: 15px;
+
+    line-height: 1.7;
+
+    resize: vertical;
+
+    background: #f8fbff;
+
+    color: #1e293b;
+
+    transition: .3s;
+}
+
+#transcriptText:focus {
+    outline: none;
+
+    border-color: #0057B8;
+
+    box-shadow:
+        0 0 0 4px rgba(0, 87, 184, .10);
+
+    background: #ffffff;
+}
+
+#transcriptText:disabled {
+    cursor: default;
+
+    opacity: .95;
+}
+
+
+/* ==========================================
+   TRANSCRIPT INFO
+========================================== */
+
+.transcript-info {
+    margin-top: 10px;
+
+    font-size: 13px;
+
+    color: #64748b;
+
+    line-height: 20px;
+}
+
+
+/* ==========================================
+   TRANSCRIPT ACTIONS
+========================================== */
+
+.transcript-actions {
+    display: flex;
+
+    gap: 12px;
+
+    margin-top: 20px;
+
+    flex-wrap: wrap;
+}
+
+
+/* ==========================================
+   TRANSCRIPT BUTTONS
+========================================== */
+
+.transcript-actions .secondary-btn,
+.transcript-actions .primary-btn {
+    min-height: 48px;
+
+    padding: 11px 20px;
+
+    border-radius: 10px;
+
+    font-family: 'Inter', sans-serif;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+
+/* Edit Button */
+
+.transcript-actions .secondary-btn {
+    background: #eef5ff;
+
+    color: #0057B8;
+
+    border: 1px solid #dbe7f4;
+}
+
+.transcript-actions .secondary-btn:hover {
+    background: #0057B8;
+
+    color: #ffffff;
+}
+
+
+/* Continue Button */
+
+.transcript-actions .primary-btn {
+    border: none;
+
+    background: linear-gradient(
+        90deg,
+        #0057B8,
+        #00AEEF
+    );
+
+    color: white;
+}
+
+.transcript-actions .primary-btn:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 8px 18px rgba(0, 87, 184, .20);
+}
+
+
+/* ==========================================
+   TRANSCRIPT STATUS
+========================================== */
+
+.transcript-status {
+    margin-top: 15px;
+
+    min-height: 20px;
+
+    font-size: 14px;
+
+    font-weight: 500;
+}
+
+.transcript-status.success {
+    color: #15803d;
+}
+
+.transcript-status.error {
+    color: #dc2626;
+}
+
+.transcript-status.editing {
+    color: #0057B8;
+}
+
+.transcript-status.loading {
+    color: #64748b;
+}
+
+
+/* ==========================================
+   MOBILE RESPONSIVENESS
+========================================== */
+
+@media (max-width: 768px) {
+
+    body {
+        padding: 20px;
+    }
+
+    .card {
+        padding: 25px;
+    }
+
+    .record-section {
+        flex-direction: column;
+    }
+
+    .header h1 {
+        font-size: 28px;
+    }
+}
+
+
+@media (max-width: 600px) {
+
+    .transcript-section {
+        padding: 20px;
+    }
+
+    .transcript-actions {
+        flex-direction: column;
+    }
+
+    .transcript-actions button {
+        width: 100%;
+    }
+
+    .transcript-header h2 {
+        font-size: 21px;
+    }
+}

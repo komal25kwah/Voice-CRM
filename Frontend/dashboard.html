@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Voice CRM - Manager Dashboard</title>
+
+    <link rel="stylesheet" href="dashboard.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+
+    <header class="header">
+
+        <div>
+            <h1>📊 Voice CRM Dashboard</h1>
+            <p>Manager View - CRM Reports</p>
+        </div>
+
+        <button id="refreshBtn" class="refresh-btn">
+            🔄 Refresh
+        </button>
+
+    </header>
+
+    <!-- Summary Cards -->
+
+    <section class="cards">
+
+        <div class="card">
+            <h3>Total Reports</h3>
+            <h2 id="totalReports">0</h2>
+        </div>
+
+        <div class="card">
+            <h3>Negotiation Stage</h3>
+            <h2 id="negotiationCount">0</h2>
+        </div>
+
+        <div class="card">
+            <h3>Today's Reports</h3>
+            <h2 id="todayReports">0</h2>
+        </div>
+
+        <div class="card">
+            <h3>Total Companies</h3>
+            <h2 id="companyCount">0</h2>
+        </div>
+
+    </section>
+
+    <!-- Search -->
+
+    <section class="toolbar">
+
+        <input
+                type="text"
+                id="searchInput"
+                placeholder="Search by Company or Record ID...">
+
+    </section>
+
+    <!-- Table -->
+
+    <section class="table-container">
+
+        <table id="crmTable">
+
+            <thead>
+
+            <tr>
+
+                <th>Record ID</th>
+                <th>Company</th>
+                <th>Visit Date</th>
+                <th>Status</th>
+                <th>Region</th>
+                <th>Item Type</th>
+                <th>Action</th>
+
+            </tr>
+
+            </thead>
+
+            <tbody id="tableBody">
+
+            <!-- JavaScript will insert rows here -->
+
+            
+        
+        
+        
+        
+        
+        
+        
+        </tbody>
+
+
+
+        </table>
+
+    </section>
+
+</div>
+
+
+<!-- Details Modal -->
+
+<div id="detailsModal" class="modal">
+
+    <div class="modal-content">
+
+        <span class="close">&times;</span>
+
+        <h2>CRM Report Details</h2>
+
+        <div id="modalBody">
+
+            <!-- Details loaded dynamically -->
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="dashboard.js"></script>
+
+</body>
+
+</html>
