@@ -1,475 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Voice CRM Assistant</title>
 
-
-    <!-- =========================================
-         CSS
-    ========================================== -->
+    <link rel="stylesheet" href="employee.css">
 
     <link
-        rel="stylesheet"
-        href="employee.css"
-    >
-
-
-    <!-- =========================================
-         GOOGLE FONT
-    ========================================== -->
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
         rel="stylesheet"
     >
-
 </head>
-
 
 <body>
 
+    <div class="page-shell">
 
-    <!-- =========================================
-         MAIN CONTAINER
-    ========================================== -->
-
-    <div class="container">
+        <div class="ambient ambient-one"></div>
+        <div class="ambient ambient-two"></div>
 
 
-        <!-- =========================================
-             MAIN CARD
-        ========================================== -->
+        <main class="container">
 
-        <div class="card">
+            <!-- ================================= -->
+            <!-- HERO -->
+            <!-- ================================= -->
 
+            <section class="hero-card">
 
-            <!-- =========================================
-                 HEADER
-            ========================================== -->
+                <div class="hero-copy">
 
-            <div class="header">
-
-                <h1>
-                    🎤 Voice CRM Assistant
-                </h1>
-
-
-                <p>
-
-                    Upload or record your customer visit
-                    summary.
-
-                    AI will automatically process your
-                    visit information.
-
-                </p>
-
-            </div>
-
-
-
-            <!-- =========================================
-                 EMPLOYEE FORM
-            ========================================== -->
-
-            <form id="uploadForm">
-
-
-                <!-- =====================================
-                     EMPLOYEE NAME
-                ====================================== -->
-
-                <div class="input-group">
-
-                    <label for="employeeName">
-
-                        Employee Name
-
-                    </label>
-
-
-                    <input
-                        type="text"
-                        id="employeeName"
-                        placeholder="Enter your name"
-                        required
-                    >
-
-                </div>
-
-
-
-                <!-- =====================================
-                     RECORDING BUTTONS
-                ====================================== -->
-
-                <div class="record-section">
-
-
-                    <!-- Start Recording -->
-
-                    <button
-                        type="button"
-                        id="recordBtn"
-                        class="secondary-btn"
-                    >
-
-                        🎤 Start Recording
-
-                    </button>
-
-
-                    <!-- Stop Recording -->
-
-                    <button
-                        type="button"
-                        id="stopBtn"
-                        class="secondary-btn"
-                        disabled
-                    >
-
-                        ⏹ Stop Recording
-
-                    </button>
-
-
-                </div>
-
-
-
-                <!-- =====================================
-                     DIVIDER
-                ====================================== -->
-
-                <div class="divider">
-
-                    <span>
-                        OR
+                    <span class="eyebrow">
+                        AI Voice CRM
                     </span>
 
-                </div>
-
-
-
-                <!-- =====================================
-                     AUDIO UPLOAD
-                ====================================== -->
-
-                <div class="input-group">
-
-                    <label for="audioFile">
-
-                        Upload Audio File
-
-                    </label>
-
-
-                    <input
-                        type="file"
-                        id="audioFile"
-                        accept="audio/*"
-                    >
-
-                </div>
-
-
-
-                <!-- =====================================
-                     AUDIO PREVIEW
-                ====================================== -->
-
-                <div
-                    id="audioPreview"
-                    class="hidden"
-                >
-
-
-                    <h3>
-
-                        🎧 Preview Recording
-
-                    </h3>
-
-
-                    <!-- Audio Player -->
-
-                    <audio
-                        id="audioPlayer"
-                        controls
-                    >
-                    </audio>
-
-
-                    <!-- Preview Buttons -->
-
-                    <div class="preview-buttons">
-
-
-                        <button
-                            type="button"
-                            id="deleteRecording"
-                            class="delete-btn"
-                        >
-
-                            🗑 Delete Recording
-
-                        </button>
-
-
-                    </div>
-
-
-                </div>
-
-
-
-                <!-- =====================================
-                     SUBMIT AUDIO
-                ====================================== -->
-
-                <button
-                    type="submit"
-                    class="submit-btn"
-                >
-
-                    🎙 Submit Audio
-
-                </button>
-
-
-            </form>
-
-
-
-            <!-- =========================================
-                 LOADING
-            ========================================== -->
-
-            <div
-                id="loading"
-                class="loading hidden"
-            >
-
-                ⏳ Processing audio...
-
-                <br>
-                <br>
-
-                Please wait while AI converts your
-                audio into an English transcript.
-
-            </div>
-
-
-
-            <!-- =========================================
-                 STEP 2
-                 TRANSCRIPT REVIEW
-            ========================================== -->
-
-            <section
-                id="transcriptSection"
-                class="transcript-section hidden"
-            >
-
-
-                <!-- =====================================
-                     STEP 2 HEADER
-                ====================================== -->
-
-                <div class="transcript-header">
-
-
-                    <span class="step-badge">
-
-                        STEP 2
-
-                    </span>
-
-
-                    <h2>
-
-                        Review Your Transcript
-
-                    </h2>
-
+                    <h1>
+                        Record, review, correct, and submit CRM reports in one flow.
+                    </h1>
 
                     <p>
-
-                        We converted your audio into English.
-                        Please review the transcript carefully
-                        and correct anything if needed.
-
+                        Capture a customer visit from the browser,
+                        let AI extract the CRM information,
+                        complete any missing fields,
+                        and submit the final report to Supabase.
                     </p>
 
-
                 </div>
 
 
+                <div class="hero-note">
 
-                <!-- =====================================
-                     TRANSCRIPT CARD
-                ====================================== -->
+                    <span>
+                        Workflow
+                    </span>
 
-                <div class="transcript-card">
-
-
-                    <label for="transcriptText">
-
-                        English Transcript
-
-                    </label>
-
-
-                    <!--
-                        AI-generated transcript will
-                        appear here.
-
-                        It is disabled initially.
-
-                        JavaScript will enable it when
-                        employee clicks "Edit Transcript".
-                    -->
-
-                    <textarea
-                        id="transcriptText"
-                        placeholder="Your English transcript will appear here..."
-                        spellcheck="true"
-                        disabled
-                    ></textarea>
-
-
-                    <div class="transcript-info">
-
-                        ✨ AI-generated transcript.
-                        Please review it before continuing.
-
-                    </div>
-
+                    <strong>
+                        Audio → AI Extraction → CRM Review → Save
+                    </strong>
 
                 </div>
-
-
-
-                <!-- =====================================
-                     TRANSCRIPT ACTION BUTTONS
-                ====================================== -->
-
-                <div class="transcript-actions">
-
-
-                    <!-- Edit Transcript -->
-
-                    <button
-                        type="button"
-                        id="editTranscriptBtn"
-                        class="secondary-btn"
-                    >
-
-                        ✏️ Edit Transcript
-
-                    </button>
-
-
-                    <!-- Continue -->
-
-                    <button
-                        type="button"
-                        id="continueTranscriptBtn"
-                        class="primary-btn"
-                    >
-
-                        Continue →
-
-                    </button>
-
-
-                </div>
-
-
-
-                <!-- =====================================
-                     TRANSCRIPT STATUS
-                ====================================== -->
-
-                <div
-                    id="transcriptStatus"
-                    class="transcript-status"
-                >
-
-                </div>
-
 
             </section>
 
 
 
-            <!-- =========================================
-                 SUCCESS MESSAGE
-            ========================================== -->
+            <!-- ================================= -->
+            <!-- MAIN WORKFLOW -->
+            <!-- ================================= -->
 
-            <div
-                id="success"
-                class="result hidden"
-            >
+            <section class="workflow-card">
 
+                <form
+                    id="uploadForm"
+                    class="workflow-form"
+                >
 
-                <h2>
+                    <!-- EMPLOYEE NAME -->
 
-                    ✅ Report Submitted Successfully
+                    <div class="field-group">
 
-                </h2>
+                        <label for="employeeName">
+                            Employee Name
+                        </label>
 
+                        <input
+                            type="text"
+                            id="employeeName"
+                            placeholder="Enter your name"
+                            autocomplete="name"
+                            required
+                        >
 
-                <p>
-
-                    Your CRM report has been securely saved.
-
-                </p>
-
-
-                <br>
-
-
-                <strong>
-
-                    Reference ID:
-
-                    <span id="recordId">
-
-                        ---
-
-                    </span>
-
-                </strong>
+                    </div>
 
 
-            </div>
+
+                    <!-- RECORDING BUTTONS -->
+
+                    <div class="record-row">
+
+                        <button
+                            type="button"
+                            id="recordBtn"
+                            class="secondary-btn"
+                        >
+                            🎤 Start Recording
+                        </button>
 
 
-        </div>
+                        <button
+                            type="button"
+                            id="stopBtn"
+                            class="secondary-btn"
+                            disabled
+                        >
+                            ⏹ Stop Recording
+                        </button>
 
+                    </div>
+
+
+
+                    <!-- OR -->
+
+                    <div class="divider">
+                        <span>OR</span>
+                    </div>
+
+
+
+                    <!-- UPLOAD AUDIO -->
+
+                    <div class="field-group">
+
+                        <label for="audioFile">
+                            Upload Audio File
+                        </label>
+
+                        <input
+                            type="file"
+                            id="audioFile"
+                            accept="audio/*"
+                        >
+
+                    </div>
+
+
+
+                    <!-- AUDIO PREVIEW -->
+
+                    <div
+                        id="audioPreview"
+                        class="audio-preview hidden"
+                    >
+
+                        <div class="section-heading">
+
+                            <h3>
+                                Audio Preview
+                            </h3>
+
+                            <p>
+                                Check the selected or recorded audio before submitting it.
+                            </p>
+
+                        </div>
+
+
+                        <audio
+                            id="audioPlayer"
+                            controls
+                        ></audio>
+
+
+                        <div class="preview-buttons">
+
+                            <button
+                                type="button"
+                                id="deleteRecording"
+                                class="delete-btn"
+                            >
+                                🗑 Delete Recording
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- SUBMIT AUDIO -->
+
+                    <button
+                        type="submit"
+                        class="submit-btn"
+                    >
+                        🎙 Process Audio
+                    </button>
+
+                </form>
+
+
+
+                <!-- ================================= -->
+                <!-- LOADING -->
+                <!-- ================================= -->
+
+                <div
+                    id="loading"
+                    class="loading hidden"
+                ></div>
+
+
+
+                <!-- ================================= -->
+                <!-- CRM REVIEW -->
+                <!-- ================================= -->
+
+                <section
+                    id="crmSection"
+                    class="step-card hidden"
+                >
+
+                    <div class="step-header">
+
+                        <span class="step-badge">
+                            STEP 2
+                        </span>
+
+                        <h2>
+                            CRM Information
+                        </h2>
+
+                        <p>
+                            AI has extracted the CRM information from your audio.
+                            Review the information below and complete any missing required fields.
+                        </p>
+
+                    </div>
+
+
+
+                    <!-- CRM SUMMARY -->
+
+                    <div
+                        id="crmSummary"
+                        class="summary-grid"
+                    ></div>
+
+
+
+                    <!-- ================================= -->
+                    <!-- MISSING FIELDS -->
+                    <!-- ================================= -->
+
+                    <div
+                        id="missingFieldsSection"
+                        class="missing-fields hidden"
+                    >
+
+                        <div class="section-heading">
+
+                            <h3>
+                                Complete Missing Information
+                            </h3>
+
+                            <p id="missingFieldsMessage">
+                                Some required information could not be extracted.
+                                Please enter it manually.
+                            </p>
+
+                        </div>
+
+
+                        <div
+                            id="missingFieldsForm"
+                            class="missing-fields-form"
+                        ></div>
+
+                    </div>
+
+
+
+                    <!-- STATUS -->
+
+                    <div
+                        id="crmStatus"
+                        class="status-line"
+                    ></div>
+
+
+
+                    <!-- ACTION BUTTONS -->
+
+                    <div class="crm-actions">
+
+                        <button
+                            type="button"
+                            id="recordAgainBtn"
+                            class="secondary-btn"
+                        >
+                            🔄 Record Again
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="submitReportBtn"
+                            class="primary-btn"
+                            disabled
+                        >
+                            ✅ Submit Report
+                        </button>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- ================================= -->
+                <!-- SUCCESS -->
+                <!-- ================================= -->
+
+                <div
+                    id="success"
+                    class="result hidden"
+                >
+
+                    <h2>
+                        ✅ Report Submitted Successfully
+                    </h2>
+
+                    <p>
+                        Your final CRM report has been saved to Supabase.
+                    </p>
+
+                    <strong>
+                        Reference ID:
+                        <span id="recordId">
+                            ---
+                        </span>
+                    </strong>
+
+                </div>
+
+            </section>
+
+        </main>
 
     </div>
 
 
-
-    <!-- =========================================
-         JAVASCRIPT
-    ========================================== -->
+    <!-- JAVASCRIPT -->
 
     <script src="employee.js"></script>
 
-
 </body>
-
 </html>

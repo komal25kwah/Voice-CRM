@@ -1,14 +1,17 @@
-import os
 import json
+import os
+import re
+import uuid
 from datetime import datetime
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from dotenv import load_dotenv
 from openai import OpenAI
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 
 # ==========================================
-# LOAD ENVIRONMENT VARIABLES
+# ENVIRONMENT
 # ==========================================
 
 load_dotenv()
@@ -18,713 +21,468 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 
-if not API_KEY:
-    raise ValueError(
-        "OPENAI_API_KEY not found in .env file"
-    )
+# ==========================================
+# CLIENTS
+# ==========================================
 
+client = OpenAI(api_key=API_KEY) if API_KEY else None
+supabase: Optional[Client] = None
 
-if not SUPABASE_URL:
-    raise ValueError(
-        "SUPABASE_URL not found in .env file"
-    )
-
-
-if not SUPABASE_KEY:
-    raise ValueError(
-        "SUPABASE_KEY not found in .env file"
-    )
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 # ==========================================
-# OPENAI CLIENT
+# CRM FIELD DEFINITIONS
 # ==========================================
 
-client = OpenAI(
-    api_key=API_KEY
+CRM_FIELDS: Tuple[str, ...] = (
+    "Created_By",
+    "Company",
+    "Attendees",
+    "DateofVisit",
+    "ObjectiveofVisit",
+    "NameDesignationofPersonMet",
+    "Current_Consumption",
+    "PotentialAccountVol_CM",
+    "Current_Supplier",
+    "CommercialOfferingBy_Competition",
+    "RemarksWayForward",
+    "MOMActionItems",
+    "SPANCOP_Status",
+    "Created_Date",
+    "CompanyCustomerCode",
+    "Company_Segment",
+    "CompanyCustomerSince",
+    "Sub_Department",
+    "Item_Type",
+    "Path",
+    "Record_ID",
+)
+
+REQUIRED_FIELDS: Tuple[Tuple[str, str], ...] = (
+    ("NameDesignationofPersonMet", "Doctor / Person Name"),
+    ("Item_Type", "Medicine / Item Name"),
+    ("DateofVisit", "Date of Visit"),
+)
+
+MISSING_SENTINELS = {
+    "",
+    "could not extract",
+    "n/a",
+    "na",
+    "unknown",
+    "none",
+    "null",
+}
+
+ALLOWED_SPANCOP_VALUES = (
+    "Suspect",
+    "Prospect",
+    "Approach",
+    "Negotiation",
+    "Close",
+    "Order",
+    "Post-sale",
 )
 
 
 # ==========================================
-# SUPABASE CLIENT
+# HELPERS
 # ==========================================
 
-supabase: Client = create_client(
-    SUPABASE_URL,
-    SUPABASE_KEY
-)
+def _today_date() -> str:
+    return datetime.today().strftime("%Y-%m-%d")
 
 
-# ==========================================
-# SPEECH TO TEXT + ENGLISH CONVERSION
-# ==========================================
-
-def transcribe_audio(audio_path):
-
-    print("🎙 transcribe_audio() STARTED")
+def _generate_record_id() -> str:
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    suffix = uuid.uuid4().hex[:6].upper()
+    return f"CRM-{timestamp}-{suffix}"
 
 
-    # --------------------------------------
-    # Check if audio exists
-    # --------------------------------------
+def _strip_code_fences(text: str) -> str:
+    cleaned_text = text.strip()
 
-    if not os.path.exists(audio_path):
+    if cleaned_text.startswith("```"):
+        cleaned_text = re.sub(r"^```(?:json)?\s*", "", cleaned_text, flags=re.IGNORECASE)
+        cleaned_text = re.sub(r"\s*```$", "", cleaned_text)
 
-        raise FileNotFoundError(
-            f"Audio file not found: {audio_path}"
-        )
-
-
-    # --------------------------------------
-    # Show file information
-    # --------------------------------------
-
-    file_size = os.path.getsize(audio_path)
-
-    print(
-        f"📁 Audio file: {audio_path}"
-    )
-
-    print(
-        f"📦 Audio size: {file_size} bytes"
-    )
+    return cleaned_text.strip()
 
 
-    if file_size == 0:
-
-        raise ValueError(
-            "Audio file is empty."
-        )
-
-
-    # ======================================
-    # STEP 1: AUDIO → ORIGINAL TRANSCRIPT
-    # ======================================
-
-    print(
-        "🔹 STEP 1: Starting Speech-to-Text..."
-    )
-
+def _parse_json_payload(payload: str) -> Dict[str, Any]:
+    cleaned_payload = _strip_code_fences(payload)
 
     try:
-
-        print(
-            "🔹 Opening audio file..."
-        )
-
-
-        with open(
-            audio_path,
-            "rb"
-        ) as audio_file:
-
-            print(
-                "🔹 Audio file opened successfully."
-            )
-
-            print(
-                "🔹 Sending audio to OpenAI..."
-            )
-
-
-            transcript = client.audio.transcriptions.create(
-
-                model="gpt-4o-transcribe",
-
-                file=audio_file
-
-            )
-
-
-        print(
-            "✅ OpenAI transcription response received."
-        )
-
-
-    except Exception as e:
-
-        print(
-            "\n❌ OPENAI TRANSCRIPTION ERROR"
-        )
-
-        print(
-            "Error Type:",
-            type(e).__name__
-        )
-
-        print(
-            "Error:",
-            str(e)
-        )
-
+        return json.loads(cleaned_payload)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", cleaned_payload, flags=re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
         raise
 
 
-    # --------------------------------------
-    # Get original transcript
-    # --------------------------------------
+def _normalize_value(value: Any) -> Optional[Any]:
+    if value is None:
+        return None
 
-    original_text = transcript.text
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized.lower() in MISSING_SENTINELS or "could not extract" in normalized.lower():
+            return None
+        return normalized
 
-
-    print(
-        "✅ Speech-to-Text completed."
-    )
-
-
-    print(
-        "\n----------- ORIGINAL TRANSCRIPT -----------\n"
-    )
-
-    print(
-        original_text
-    )
+    return value
 
 
-    # ======================================
-    # STEP 2: ORIGINAL → ENGLISH
-    # ======================================
+def _normalize_record(record: Dict[str, Any], employee_name: str = "", include_generated_ids: bool = False) -> Dict[str, Any]:
+    normalized: Dict[str, Any] = {field: None for field in CRM_FIELDS}
 
-    print(
-        "\n🔹 STEP 2: Converting transcript to English..."
-    )
+    for field in CRM_FIELDS:
+        normalized[field] = _normalize_value(record.get(field))
+
+    if employee_name.strip():
+        normalized["Created_By"] = employee_name.strip()
+
+    if not normalized.get("Created_Date"):
+        normalized["Created_Date"] = _today_date()
+
+    if not normalized.get("SPANCOP_Status"):
+        normalized["SPANCOP_Status"] = None
+    elif isinstance(normalized["SPANCOP_Status"], str):
+        candidate = normalized["SPANCOP_Status"]
+        allowed_lookup = {value.lower(): value for value in ALLOWED_SPANCOP_VALUES}
+        normalized["SPANCOP_Status"] = allowed_lookup.get(candidate.lower(), candidate)
+
+    if include_generated_ids and not normalized.get("Record_ID"):
+        normalized["Record_ID"] = _generate_record_id()
+
+    return normalized
 
 
-    try:
+def _validate_required_fields(record: Dict[str, Any]) -> Tuple[List[str], List[str]]:
+    missing_labels: List[str] = []
+    missing_keys: List[str] = []
 
-        translation_response = client.chat.completions.create(
+    for field_key, field_label in REQUIRED_FIELDS:
+        if _normalize_value(record.get(field_key)) is None:
+            missing_labels.append(field_label)
+            missing_keys.append(field_key)
 
-            model="gpt-4.1-mini",
+    return missing_labels, missing_keys
 
-            messages=[
 
-                {
-                    "role": "system",
+def _save_json_snapshot(record: Dict[str, Any]) -> None:
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_dir = os.path.join(base_dir, "output")
+    os.makedirs(output_dir, exist_ok=True)
 
-                    "content": (
-                        "You are a professional translator "
-                        "for a business CRM system.\n\n"
+    output_path = os.path.join(output_dir, "structured_output.json")
+    with open(output_path, "w", encoding="utf-8") as file_handle:
+        json.dump(record, file_handle, indent=4, ensure_ascii=False)
 
-                        "Translate the provided transcript "
-                        "into clear and natural English.\n\n"
 
-                        "IMPORTANT RULES:\n"
+def _save_to_supabase(record: Dict[str, Any]) -> Dict[str, Any]:
+    supabase_client = _require_supabase_client()
+    response = supabase_client.table("crm_reports").insert(record).execute()
+    if response.data:
+        inserted = response.data[0]
+        if isinstance(inserted, dict):
+            return inserted
+    return record
 
-                        "- Translate only what is actually said.\n"
 
-                        "- Do not add or invent information.\n"
+def _require_openai_client() -> Any:
+    if client is None:
+        raise RuntimeError("OPENAI_API_KEY is not configured. Set it in the environment before transcribing audio.")
+    return client
 
-                        "- Preserve people's names exactly "
-                        "as spoken as much as possible.\n"
 
-                        "- Preserve company names.\n"
+def _require_supabase_client() -> Client:
+    if supabase is None:
+        raise RuntimeError("Supabase credentials are not configured. Set SUPABASE_URL and SUPABASE_KEY before saving records.")
+    return supabase
 
-                        "- Preserve medicine and product names.\n"
 
-                        "- Preserve dates and numbers.\n"
+def _transcribe_to_english(audio_path: str) -> str:
+    print("🔹 STEP 1: Starting Speech-to-Text")
 
-                        "- Preserve the meaning of the "
-                        "original speech.\n"
+    openai_client = _require_openai_client()
 
-                        "- Return only the English translation.\n"
-
-                        "- Do not add explanations."
-                    )
-                },
-
-                {
-                    "role": "user",
-
-                    "content": original_text
-                }
-
-            ],
-
-            temperature=0
-
+    with open(audio_path, "rb") as audio_file:
+        transcript_response = openai_client.audio.transcriptions.create(
+            model="gpt-4o-transcribe",
+            file=audio_file,
         )
 
+    original_text = (transcript_response.text or "").strip()
 
-        english_text = (
-            translation_response
-            .choices[0]
-            .message
-            .content
-            .strip()
-        )
+    if not original_text:
+        raise ValueError("Speech-to-text returned an empty transcript.")
 
+    print("✅ Speech-to-text complete")
+    print("\n----------- ORIGINAL TRANSCRIPT -----------\n")
+    print(original_text)
 
-        print(
-            "✅ English conversion completed."
-        )
+    print("\n🔹 STEP 2: Translating transcript to English")
 
-
-    except Exception as e:
-
-        print(
-            "\n❌ ENGLISH TRANSLATION ERROR"
-        )
-
-        print(
-            "Error Type:",
-            type(e).__name__
-        )
-
-        print(
-            "Error:",
-            str(e)
-        )
-
-        raise
-
-
-    # ======================================
-    # SHOW ENGLISH TRANSCRIPT
-    # ======================================
-
-    print(
-        "\n----------- ENGLISH TRANSCRIPT -----------\n"
+    translation_response = openai_client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You translate CRM visit transcripts into clear English. "
+                    "Preserve names, company names, medicine names, numbers, and dates. "
+                    "Do not invent details. Return only the English translation."
+                ),
+            },
+            {"role": "user", "content": original_text},
+        ],
+        temperature=0,
     )
 
-    print(
-        english_text
-    )
+    english_text = (
+        translation_response.choices[0].message.content or ""
+    ).strip()
 
+    if not english_text:
+        raise ValueError("English translation returned an empty result.")
 
-    print(
-        "\n🎙 transcribe_audio() ENDED"
-    )
-
-
-    # ======================================
-    # RETURN ENGLISH TRANSCRIPT
-    # ======================================
+    print("✅ English conversion completed")
+    print("\n----------- ENGLISH TRANSCRIPT -----------\n")
+    print(english_text)
 
     return english_text
 
 
-# ==========================================
-# AI ENGINE
-# ==========================================
-
-def process_audio(
-    audio_path,
-    save_json=True
-):
-
-    print(
-        "🔥 process_audio() STARTED"
-    )
-
-
-    # --------------------------------------
-    # Check if audio exists
-    # --------------------------------------
-
-    if not os.path.exists(audio_path):
-
-        raise FileNotFoundError(
-            f"Audio file not found: {audio_path}"
-        )
-
-
-    print(
-        "Transcribing audio..."
-    )
-
-    print(
-        "🔹 STEP 1: Starting Speech-to-Text"
-    )
-
-
-    # ======================================
-    # STEP 1: SPEECH TO TEXT
-    # ======================================
-
-    with open(
-        audio_path,
-        "rb"
-    ) as audio_file:
-
-        transcript = client.audio.transcriptions.create(
-
-            model="gpt-4o-transcribe",
-
-            file=audio_file
-
-        )
-
-
-    speech_text = transcript.text
-
-
-    print(
-        "✅ STEP 1 Complete"
-    )
-
-
-    print(
-        "\n----------- TRANSCRIPTION -----------\n"
-    )
-
-    print(
-        speech_text
-    )
-
-
-    # ======================================
-    # STEP 2: GPT PROMPT
-    # ======================================
-
-    today_date = datetime.today().strftime(
-        "%Y-%m-%d"
-    )
-
+def _extract_crm_json(transcript_text: str, employee_name: str = "") -> Dict[str, Any]:
+    today_date = _today_date()
 
     prompt = f"""
-You are a sales CRM data extraction assistant.
+You are extracting structured CRM data from a final English transcript.
 
-Convert the following sales visit speech into STRICT JSON format.
+Rules:
+- Use only the transcript provided below.
+- Do not invent information.
+- Keep names, company names, medicine names, dates, and numbers exactly as spoken when possible.
+- Return strict JSON only.
+- Use null for any missing field.
+- Never use "could not extract", "N/A", or "unknown" for required values.
+- Use yyyy-MM-dd format when a date is known.
+- If the transcript does not mention a value, use null.
+- SPANCOP_Status must be one of: {", ".join(ALLOWED_SPANCOP_VALUES)}.
 
-IMPORTANT RULES:
-
-- The speech may be in Urdu.
-- Translate all extracted information into English.
-- Return JSON values only in English.
-- Do not write any Urdu words.
-- Keep company names and people's names in English.
-- Return ONLY valid JSON.
-- Do not add explanations.
-- Use yyyy-MM-dd date format.
-- If any field is missing, write "could not extract".
-- Do not leave any field blank.
-- Extract attendees separately if mentioned.
-
-SPANCOP_Status must be one of:
-
-Suspect,
-Prospect,
-Approach,
-Negotiation,
-Close,
-Order,
-Post-sale
-
-Return this JSON:
-
+Return exactly these keys:
 {{
-    "Created_By": "",
-    "Company": "",
-    "Attendees": "",
-    "DateofVisit": "",
-    "ObjectiveofVisit": "",
-    "NameDesignationofPersonMet": "",
-    "Current_Consumption": "",
-    "PotentialAccountVol_CM": "",
-    "Current_Supplier": "",
-    "CommercialOfferingBy_Competition": "",
-    "RemarksWayForward": "",
-    "MOMActionItems": "",
-    "SPANCOP_Status": "",
-    "Created_Date": "{today_date}",
-    "CompanyCustomerCode": "",
-    "Company_Segment": "",
-    "CompanyCustomerSince": "",
-    "Sub_Department": "",
-    "Item_Type": "",
-    "Path": "",
-    "Record_ID": ""
+  "Created_By": "",
+  "Company": "",
+  "Attendees": "",
+  "DateofVisit": "",
+  "ObjectiveofVisit": "",
+  "NameDesignationofPersonMet": "",
+  "Current_Consumption": "",
+  "PotentialAccountVol_CM": "",
+  "Current_Supplier": "",
+  "CommercialOfferingBy_Competition": "",
+  "RemarksWayForward": "",
+  "MOMActionItems": "",
+  "SPANCOP_Status": "",
+  "Created_Date": "{today_date}",
+  "CompanyCustomerCode": "",
+  "Company_Segment": "",
+  "CompanyCustomerSince": "",
+  "Sub_Department": "",
+  "Item_Type": "",
+  "Path": "",
+  "Record_ID": ""
 }}
 
-Speech:
+Employee name metadata: {employee_name.strip() or ""}
 
-{speech_text}
+Transcript:
+{transcript_text}
 """
 
+    print("🔹 STEP 3: Sending transcript to CRM extractor")
 
-    print(
-        "\nStructuring data..."
-    )
-
-    print(
-        "🔹 STEP 2: Sending prompt to GPT"
-    )
-
-
-    # ======================================
-    # STEP 3: GPT EXTRACTION
-    # ======================================
-
-    response = client.chat.completions.create(
-
+    response = _require_openai_client().chat.completions.create(
         model="gpt-4.1",
-
         messages=[
-
             {
                 "role": "system",
-
-                "content": (
-                    "You extract structured CRM data "
-                    "strictly in JSON."
-                )
+                "content": "You extract CRM information and respond with strict JSON only.",
             },
-
-            {
-                "role": "user",
-
-                "content": prompt
-            }
-
+            {"role": "user", "content": prompt},
         ],
-
-        temperature=0
-
+        temperature=0,
+        response_format={"type": "json_object"},
     )
 
+    raw_payload = response.choices[0].message.content or "{}"
+    extracted_record = _parse_json_payload(raw_payload)
 
-    structured_output = (
-        response
-        .choices[0]
-        .message
-        .content
+    normalized_record = _normalize_record(
+        extracted_record,
+        employee_name=employee_name,
+        include_generated_ids=False,
     )
 
+    print("✅ CRM extraction complete")
+    print("\n----------- EXTRACTED CRM JSON -----------\n")
+    print(json.dumps(normalized_record, indent=4, ensure_ascii=False))
 
-    print(
-        "✅ STEP 2 Complete"
+    return normalized_record
+
+
+def _build_review_response(record: Dict[str, Any]) -> Dict[str, Any]:
+    missing_labels, missing_keys = _validate_required_fields(record)
+    status = "success" if not missing_labels else "missing_fields"
+
+    return {
+        "status": status,
+        "data": record,
+        "missing_required_fields": missing_labels,
+        "missing_required_field_keys": missing_keys,
+    }
+
+
+def _finalize_record(record: Dict[str, Any], employee_name: str = "") -> Dict[str, Any]:
+    finalized_record = _normalize_record(
+        record,
+        employee_name=employee_name,
+        include_generated_ids=True,
     )
 
+    missing_labels, missing_keys = _validate_required_fields(finalized_record)
+    if missing_labels:
+        return {
+            "status": "incomplete",
+            "data": finalized_record,
+            "missing_required_fields": missing_labels,
+            "missing_required_field_keys": missing_keys,
+        }
 
-    # ======================================
-    # STEP 4: JSON VALIDATION
-    # ======================================
+    _save_json_snapshot(finalized_record)
+    inserted_record = _save_to_supabase(finalized_record)
 
-    print(
-        "🔹 STEP 3: Parsing JSON"
-    )
+    print("🔹 STEP 6: Supabase save complete")
+    print("✅ Data saved to Supabase successfully")
 
-
-    try:
-
-        structured_json = json.loads(
-            structured_output
-        )
-
-
-    except json.JSONDecodeError:
-
-        print(
-            "\n❌ ERROR: GPT did not return valid JSON.\n"
-        )
-
-        print(
-            structured_output
-        )
-
-        return None
+    return {
+        "status": "success",
+        "data": inserted_record,
+        "missing_required_fields": [],
+        "missing_required_field_keys": [],
+        "record_id": inserted_record.get("Record_ID", finalized_record.get("Record_ID")),
+    }
 
 
-    print(
-        "✅ STEP 3 Complete"
-    )
+# ==========================================
+# PUBLIC API
+# ==========================================
+
+def transcribe_audio(audio_path: str) -> str:
+    print("🎙 transcribe_audio() STARTED")
+
+    if not os.path.exists(audio_path):
+        raise FileNotFoundError(f"Audio file not found: {audio_path}")
+
+    file_size = os.path.getsize(audio_path)
+    print(f"📁 Audio file: {audio_path}")
+    print(f"📦 Audio size: {file_size} bytes")
+
+    if file_size == 0:
+        raise ValueError("Audio file is empty.")
+
+    english_text = _transcribe_to_english(audio_path)
+
+    print("\n🎙 transcribe_audio() ENDED")
+    return english_text
 
 
-    # ======================================
-    # FIX DATE FIELDS
-    # ======================================
+def extract_crm_data(transcript: str, employee_name: str = "") -> Dict[str, Any]:
+    print("🔥 extract_crm_data() STARTED")
 
-    date_fields = [
+    if not transcript.strip():
+        raise ValueError("Transcript cannot be empty.")
 
-        "DateofVisit",
+    record = _extract_crm_json(transcript, employee_name=employee_name)
+    review = _build_review_response(record)
 
-        "CompanyCustomerSince"
-
-    ]
-
-
-    for field in date_fields:
-
-        if (
-            structured_json.get(field)
-            == "could not extract"
-        ):
-
-            structured_json[field] = None
+    print("🔥 extract_crm_data() ENDED")
+    return review
 
 
-    # ======================================
-    # DISPLAY CRM JSON
-    # ======================================
+def finalize_crm_report(
+    data: Optional[Dict[str, Any]] = None,
+    manual_fields: Optional[Dict[str, Any]] = None,
+    employee_name: str = "",
+    transcript: str = "",
+) -> Dict[str, Any]:
+    print("🔥 finalize_crm_report() STARTED")
 
-    print(
-        "\n----------- CRM JSON -----------\n"
-    )
+    base_record: Dict[str, Any] = dict(data or {})
+    if not base_record and transcript.strip():
+        base_record = _extract_crm_json(transcript, employee_name=employee_name)
+
+    merged_record = dict(base_record)
+    for field_key, field_value in (manual_fields or {}).items():
+        if field_value is not None and str(field_value).strip():
+            merged_record[field_key] = field_value
+
+    result = _finalize_record(merged_record, employee_name=employee_name)
+
+    print("🔥 finalize_crm_report() ENDED")
+    return result
 
 
-    print(
-        json.dumps(
-            structured_json,
-            indent=4,
-            ensure_ascii=False
-        )
-    )
+def process_audio(
+    audio_path: Optional[str] = None,
+    transcript_text: Optional[str] = None,
+    employee_name: str = "",
+    save_json: bool = True,
+):
+    print("🔥 process_audio() STARTED")
 
+    if transcript_text is None:
+        if not audio_path:
+            raise ValueError("Either audio_path or transcript_text must be provided.")
+        transcript_text = transcribe_audio(audio_path)
 
-    # ======================================
-    # STEP 5: SAVE JSON
-    # ======================================
+    review = extract_crm_data(transcript_text, employee_name=employee_name)
+
+    if review["status"] != "success":
+        print("🔥 process_audio() ENDED WITH INCOMPLETE DATA")
+        return review
 
     if save_json:
-
-        BASE_DIR = os.path.dirname(
-            os.path.dirname(
-                os.path.abspath(__file__)
-            )
+        finalized = finalize_crm_report(
+            data=review["data"],
+            manual_fields=None,
+            employee_name=employee_name,
+            transcript=transcript_text,
         )
+        print("🔥 process_audio() ENDED")
+        return finalized
+
+    print("🔥 process_audio() ENDED")
+    return review
 
 
-        OUTPUT_DIR = os.path.join(
-            BASE_DIR,
-            "output"
-        )
-
-
-        os.makedirs(
-            OUTPUT_DIR,
-            exist_ok=True
-        )
-
-
-        output_path = os.path.join(
-            OUTPUT_DIR,
-            "structured_output.json"
-        )
-
-
-        with open(
-            output_path,
-            "w",
-            encoding="utf-8"
-        ) as f:
-
-            json.dump(
-
-                structured_json,
-
-                f,
-
-                indent=4,
-
-                ensure_ascii=False
-
-            )
-
-
-        print(
-            "\nJSON saved successfully to:"
-        )
-
-        print(
-            output_path
-        )
-
-
-    # ======================================
-    # STEP 6: SAVE TO SUPABASE
-    # ======================================
-
-    print(
-        "🔹 STEP 4: Saving to Supabase"
-    )
-
-
+def get_all_records() -> List[Dict[str, Any]]:
     try:
-
-        supabase.table(
-            "crm_reports"
-        ).insert(
-            structured_json
-        ).execute()
-
-
-        print(
-            "\n✅ Data saved to Supabase successfully."
-        )
-
-
-        print(
-            "✅ STEP 4 Complete"
-        )
-
-
-    except Exception as e:
-
-        print(
-            "\n❌ Error saving to Supabase:"
-        )
-
-        print(
-            type(e).__name__
-        )
-
-        print(
-            str(e)
-        )
-
-
-    print(
-        "🔥 process_audio() ENDED"
-    )
-
-
-    return structured_json
-
-
-# ==========================================
-# GET ALL RECORDS
-# ==========================================
-
-def get_all_records():
-
-    try:
-
+        supabase_client = _require_supabase_client()
         response = (
-
-            supabase
-
-            .table(
-                "crm_reports"
-            )
-
+            supabase_client.table("crm_reports")
             .select("*")
-
-            .order(
-                "Created_Date",
-                desc=True
-            )
-
+            .order("Created_Date", desc=True)
             .execute()
-
         )
-
-
-        return response.data
-
-
-    except Exception as e:
-
-        print(
-            "\n❌ Error fetching records:"
-        )
-
-        print(
-            type(e).__name__
-        )
-
-        print(
-            str(e)
-        )
-
-
+        return response.data or []
+    except Exception as exc:
+        print("\n❌ Error fetching records:")
+        print(type(exc).__name__)
+        print(str(exc))
         return []

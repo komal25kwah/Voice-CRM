@@ -6,295 +6,510 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
 }
 
 body {
-    background: #f4f7fb;
     min-height: 100vh;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    padding: 40px;
-
-    color: #1e293b;
+    font-family: 'Inter', sans-serif;
+    color: #132238;
+    background:
+        radial-gradient(circle at top left, rgba(0, 174, 239, .18), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(11, 99, 206, .18), transparent 30%),
+        linear-gradient(135deg, #eef5ff 0%, #f6f9ff 48%, #f9fbff 100%);
+    padding: 40px 24px;
 }
 
+button,
+input,
+textarea {
+    font: inherit;
+}
 
 /* ===================================
-   CONTAINER
+   PAGE SHELL
 =================================== */
+
+.page-shell {
+    position: relative;
+}
+
+.ambient {
+    position: fixed;
+    inset: auto;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    filter: blur(8px);
+    opacity: .55;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.ambient-one {
+    top: -110px;
+    right: -90px;
+    background: radial-gradient(circle, rgba(0, 174, 239, .35), transparent 68%);
+}
+
+.ambient-two {
+    left: -120px;
+    bottom: -120px;
+    background: radial-gradient(circle, rgba(11, 99, 206, .28), transparent 68%);
+}
 
 .container {
-    width: 100%;
-    max-width: 850px;
+    position: relative;
+    z-index: 1;
+    width: min(1120px, 100%);
+    margin: 0 auto;
 }
-
-.card {
-    background: #fff;
-
-    border-radius: 18px;
-
-    padding: 45px;
-
-    box-shadow: 0 15px 40px rgba(0, 0, 0, .08);
-}
-
 
 /* ===================================
-   HEADER
+   HERO
 =================================== */
 
-.header {
-    text-align: center;
-    margin-bottom: 35px;
+.hero-card,
+.workflow-card {
+    background: rgba(255, 255, 255, .84);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(19, 34, 56, .08);
+    box-shadow: 0 24px 70px rgba(15, 23, 42, .10);
 }
 
-.header h1 {
-    font-size: 34px;
-    color: #0057B8;
-    margin-bottom: 10px;
-}
-
-.header p {
-    color: #64748b;
-    line-height: 26px;
-    font-size: 15px;
-}
-
-
-/* ===================================
-   INPUTS
-=================================== */
-
-.input-group {
+.hero-card {
+    border-radius: 28px;
+    padding: 28px;
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: center;
     margin-bottom: 22px;
 }
 
-.input-group label {
+.hero-copy {
+    max-width: 700px;
+}
+
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(0, 87, 184, .10);
+    color: #0b63ce;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.hero-copy h1 {
+    margin-top: 16px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+}
+
+.hero-copy p {
+    margin-top: 14px;
+    color: #52627a;
+    line-height: 1.7;
+    font-size: 15px;
+    max-width: 62ch;
+}
+
+.hero-note {
+    min-width: 220px;
+    padding: 18px 20px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(0, 174, 239, .08), rgba(0, 87, 184, .10));
+    border: 1px solid rgba(0, 87, 184, .10);
+}
+
+.hero-note span {
     display: block;
+    color: #557089;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 700;
+}
 
+.hero-note strong {
+    display: block;
+    margin-top: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.4;
+    color: #132238;
+}
+
+/* ===================================
+   WORKFLOW CARD
+=================================== */
+
+.workflow-card {
+    border-radius: 28px;
+    padding: 28px;
+}
+
+.workflow-form {
+    display: grid;
+    gap: 18px;
+}
+
+.field-group label,
+.transcript-card label {
+    display: block;
     margin-bottom: 8px;
-
-    font-weight: 600;
-
+    font-size: 14px;
+    font-weight: 700;
     color: #334155;
 }
 
-.input-group input {
+.field-group input,
+#transcriptText,
+.missing-input {
     width: 100%;
-
-    height: 52px;
-
     border: 1px solid #d9e2ec;
+    border-radius: 16px;
+    background: #ffffff;
+    color: #132238;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
 
-    border-radius: 10px;
-
+.field-group input {
+    height: 54px;
     padding: 0 16px;
-
-    font-size: 15px;
-
-    transition: .3s;
 }
 
-.input-group input:focus {
+.field-group input:focus,
+#transcriptText:focus,
+.missing-input:focus {
     outline: none;
-
-    border-color: #0057B8;
-
-    box-shadow: 0 0 0 4px rgba(0, 87, 184, .12);
+    border-color: #0b63ce;
+    box-shadow: 0 0 0 4px rgba(11, 99, 206, .12);
 }
 
-
-/* ===================================
-   RECORD BUTTONS
-=================================== */
-
-.record-section {
+.record-row,
+.transcript-actions,
+.crm-actions,
+.preview-buttons {
     display: flex;
-
-    gap: 15px;
-
-    margin: 25px 0;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
-.record-section .secondary-btn {
-    flex: 1;
-
-    height: 50px;
-
+.secondary-btn,
+.primary-btn,
+.delete-btn,
+.submit-btn {
+    min-height: 50px;
     border: none;
-
-    border-radius: 10px;
-
-    background: #eef5ff;
-
-    color: #0057B8;
-
-    font-size: 15px;
-
-    font-weight: 600;
-
+    border-radius: 14px;
+    padding: 0 18px;
+    font-weight: 700;
     cursor: pointer;
-
-    transition: .3s;
+    transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease, background .18s ease;
 }
 
-.record-section .secondary-btn:hover {
-    background: #0057B8;
-
-    color: #fff;
+.secondary-btn {
+    background: #eef5ff;
+    color: #0b63ce;
+    border: 1px solid rgba(11, 99, 206, .12);
+    flex: 1 1 220px;
 }
 
-.record-section .secondary-btn:disabled {
-    opacity: .5;
+.secondary-btn:hover:not(:disabled) {
+    background: #0b63ce;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
 
+.secondary-btn:disabled,
+.primary-btn:disabled,
+.delete-btn:disabled,
+.submit-btn:disabled {
+    opacity: .6;
     cursor: not-allowed;
+    transform: none;
 }
 
+.primary-btn,
+.submit-btn {
+    background: linear-gradient(135deg, #0b63ce 0%, #00aef0 100%);
+    color: #ffffff;
+    box-shadow: 0 16px 34px rgba(11, 99, 206, .20);
+    flex: 1 1 240px;
+}
 
-/* ===================================
-   DIVIDER
-=================================== */
+.primary-btn:hover:not(:disabled),
+.submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(11, 99, 206, .24);
+}
+
+.delete-btn {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid rgba(198, 40, 40, .10);
+    flex: 1 1 220px;
+}
+
+.delete-btn:hover:not(:disabled) {
+    background: #c62828;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
 
 .divider {
     display: flex;
-
     align-items: center;
-
-    margin: 30px 0;
+    gap: 12px;
+    color: #6b7a90;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .16em;
 }
 
 .divider::before,
 .divider::after {
     content: "";
-
-    flex: 1;
-
     height: 1px;
-
-    background: #d7dde5;
+    flex: 1;
+    background: linear-gradient(90deg, transparent, rgba(90, 114, 138, .34), transparent);
 }
 
-.divider span {
-    padding: 0 15px;
-
-    color: #64748b;
-
-    font-weight: 600;
+.audio-preview,
+.step-card,
+.result {
+    border-radius: 22px;
+    border: 1px solid rgba(19, 34, 56, .08);
+    background: rgba(248, 251, 255, .95);
+    box-shadow: 0 14px 40px rgba(15, 23, 42, .08);
 }
 
-
-/* ===================================
-   FILE INPUT
-=================================== */
-
-#audioFile {
-    padding: 12px;
+.audio-preview {
+    padding: 22px;
 }
 
+.section-heading h3,
+.step-header h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.02em;
+    color: #132238;
+}
 
-/* ===================================
-   SUBMIT BUTTON
-=================================== */
+.section-heading p,
+.step-header p,
+.transcript-info {
+    color: #66758b;
+    line-height: 1.7;
+    font-size: 14px;
+}
 
-.submit-btn {
+.section-heading {
+    margin-bottom: 16px;
+}
+
+#audioPlayer {
     width: 100%;
-
-    height: 56px;
-
-    border: none;
-
-    border-radius: 10px;
-
-    background: linear-gradient(
-        90deg,
-        #0057B8,
-        #00AEEF
-    );
-
-    color: white;
-
-    font-size: 17px;
-
-    font-weight: 600;
-
-    cursor: pointer;
-
-    transition: .3s;
-
-    margin-top: 20px;
+    margin-top: 4px;
+    margin-bottom: 18px;
 }
-
-.submit-btn:hover {
-    transform: translateY(-2px);
-
-    box-shadow:
-        0 12px 25px rgba(0, 87, 184, .25);
-}
-
 
 /* ===================================
    LOADING
 =================================== */
 
 .loading {
-    margin-top: 30px;
+    margin-top: 18px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(11, 99, 206, .10), rgba(0, 174, 239, .12));
+    border: 1px solid rgba(11, 99, 206, .12);
+    color: #0b63ce;
+    font-weight: 700;
+    line-height: 1.6;
+}
 
-    padding: 18px;
+/* ===================================
+   STEP CARDS
+=================================== */
 
-    border-radius: 10px;
+.step-card {
+    margin-top: 22px;
+    padding: 24px;
+}
 
-    background: #eef7ff;
+.step-header {
+    margin-bottom: 18px;
+}
 
-    border-left: 5px solid #00AEEF;
+.step-badge {
+    display: inline-flex;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(11, 99, 206, .10);
+    color: #0b63ce;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .14em;
+}
 
-    color: #0057B8;
+.step-header h2 {
+    margin-top: 12px;
+    margin-bottom: 8px;
+    font-size: clamp(1.35rem, 2vw, 1.9rem);
+}
 
+.transcript-card {
+    margin-top: 10px;
+}
+
+#transcriptText {
+    min-height: 220px;
+    padding: 16px;
+    resize: vertical;
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+#transcriptText:disabled {
+    background: #f6f9ff;
+    color: #24344d;
+    opacity: .96;
+}
+
+.transcript-actions,
+.crm-actions {
+    margin-top: 18px;
+}
+
+.status-line {
+    margin-top: 14px;
+    min-height: 24px;
+    font-size: 14px;
     font-weight: 600;
 }
 
+.status-line.success {
+    color: #0f8a3b;
+}
+
+.status-line.error {
+    color: #c62828;
+}
+
+.status-line.loading {
+    color: #6b7280;
+}
+
+.status-line.editing {
+    color: #0b63ce;
+}
+
+/* ===================================
+   CRM SUMMARY
+=================================== */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 4px;
+}
+
+.summary-item {
+    padding: 16px;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid rgba(19, 34, 56, .08);
+}
+
+.summary-label {
+    display: block;
+    margin-bottom: 7px;
+    color: #6b7a90;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.summary-value {
+    color: #132238;
+    font-size: 15px;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.summary-value.is-missing {
+    color: #c62828;
+    font-style: italic;
+}
+
+.missing-fields {
+    margin-top: 20px;
+    padding-top: 4px;
+}
+
+.missing-fields-form {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.missing-field {
+    padding: 16px;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid rgba(19, 34, 56, .08);
+}
+
+.missing-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #334155;
+}
+
+.missing-input {
+    height: 50px;
+    padding: 0 14px;
+}
 
 /* ===================================
    SUCCESS CARD
 =================================== */
 
 .result {
-    margin-top: 30px;
-
-    padding: 25px;
-
-    border-radius: 12px;
-
-    background: #f0fff4;
-
-    border-left: 6px solid #16a34a;
+    margin-top: 22px;
+    padding: 24px;
+    background: linear-gradient(180deg, rgba(15, 138, 59, .08), rgba(255, 255, 255, .96));
+    border-color: rgba(15, 138, 59, .12);
 }
 
 .result h2 {
-    color: #15803d;
-
+    color: #0f8a3b;
     margin-bottom: 10px;
+    font-family: 'Space Grotesk', sans-serif;
 }
 
 .result p {
     color: #334155;
-
-    line-height: 25px;
+    line-height: 1.7;
 }
 
 .result strong {
     display: block;
-
-    margin-top: 15px;
-
-    color: #15803d;
-
+    margin-top: 16px;
+    color: #0f8a3b;
     font-size: 17px;
 }
-
 
 /* ===================================
    HIDDEN
@@ -304,399 +519,49 @@ body {
     display: none !important;
 }
 
-
 /* ===================================
-   AUDIO PREVIEW
+   RESPONSIVE
 =================================== */
 
-#audioPreview {
-    margin-top: 25px;
+@media (max-width: 900px) {
+    .hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 
-    padding: 20px;
-
-    border: 1px solid #dbe7f4;
-
-    border-radius: 12px;
-
-    background: #f8fbff;
+    .summary-grid,
+    .missing-fields-form {
+        grid-template-columns: 1fr;
+    }
 }
 
-#audioPreview h3 {
-    color: #0057B8;
-
-    margin-bottom: 15px;
-
-    font-size: 18px;
-}
-
-#audioPlayer {
-    width: 100%;
-
-    margin-bottom: 18px;
-}
-
-
-/* ===================================
-   PREVIEW BUTTONS
-=================================== */
-
-.preview-buttons {
-    display: flex;
-
-    gap: 15px;
-
-    margin-top: 10px;
-}
-
-.delete-btn {
-    flex: 1;
-
-    height: 50px;
-
-    border: none;
-
-    border-radius: 10px;
-
-    background: #dc2626;
-
-    color: white;
-
-    font-size: 15px;
-
-    font-weight: 600;
-
-    cursor: pointer;
-
-    transition: .3s;
-}
-
-.delete-btn:hover {
-    background: #b91c1c;
-}
-
-.play-btn {
-    flex: 1;
-
-    height: 50px;
-
-    border: none;
-
-    border-radius: 10px;
-
-    background: #16a34a;
-
-    color: white;
-
-    font-size: 15px;
-
-    font-weight: 600;
-
-    cursor: pointer;
-
-    transition: .3s;
-}
-
-.play-btn:hover {
-    background: #15803d;
-}
-
-
-/* ==========================================
-   STEP 2 - TRANSCRIPT REVIEW
-========================================== */
-
-.transcript-section {
-    margin-top: 30px;
-
-    padding: 28px;
-
-    border-radius: 16px;
-
-    background: #ffffff;
-
-    border: 1px solid #dbe7f4;
-
-    box-shadow: 0 8px 25px rgba(0, 0, 0, .06);
-}
-
-
-/* ==========================================
-   TRANSCRIPT HEADER
-========================================== */
-
-.transcript-header {
-    margin-bottom: 22px;
-}
-
-.step-badge {
-    display: inline-block;
-
-    padding: 6px 12px;
-
-    border-radius: 20px;
-
-    background: #eef5ff;
-
-    color: #0057B8;
-
-    font-size: 12px;
-
-    font-weight: 700;
-
-    letter-spacing: .5px;
-}
-
-.transcript-header h2 {
-    margin-top: 12px;
-
-    margin-bottom: 8px;
-
-    color: #1e293b;
-
-    font-size: 24px;
-}
-
-.transcript-header p {
-    margin: 0;
-
-    color: #64748b;
-
-    line-height: 1.6;
-
-    font-size: 14px;
-}
-
-
-/* ==========================================
-   TRANSCRIPT CARD
-========================================== */
-
-.transcript-card {
-    margin-top: 20px;
-}
-
-.transcript-card label {
-    display: block;
-
-    margin-bottom: 10px;
-
-    font-weight: 600;
-
-    color: #334155;
-}
-
-
-/* ==========================================
-   TRANSCRIPT TEXTAREA
-========================================== */
-
-#transcriptText {
-    width: 100%;
-
-    min-height: 190px;
-
-    padding: 16px;
-
-    border: 1px solid #d9e2ec;
-
-    border-radius: 12px;
-
-    font-family: 'Inter', sans-serif;
-
-    font-size: 15px;
-
-    line-height: 1.7;
-
-    resize: vertical;
-
-    background: #f8fbff;
-
-    color: #1e293b;
-
-    transition: .3s;
-}
-
-#transcriptText:focus {
-    outline: none;
-
-    border-color: #0057B8;
-
-    box-shadow:
-        0 0 0 4px rgba(0, 87, 184, .10);
-
-    background: #ffffff;
-}
-
-#transcriptText:disabled {
-    cursor: default;
-
-    opacity: .95;
-}
-
-
-/* ==========================================
-   TRANSCRIPT INFO
-========================================== */
-
-.transcript-info {
-    margin-top: 10px;
-
-    font-size: 13px;
-
-    color: #64748b;
-
-    line-height: 20px;
-}
-
-
-/* ==========================================
-   TRANSCRIPT ACTIONS
-========================================== */
-
-.transcript-actions {
-    display: flex;
-
-    gap: 12px;
-
-    margin-top: 20px;
-
-    flex-wrap: wrap;
-}
-
-
-/* ==========================================
-   TRANSCRIPT BUTTONS
-========================================== */
-
-.transcript-actions .secondary-btn,
-.transcript-actions .primary-btn {
-    min-height: 48px;
-
-    padding: 11px 20px;
-
-    border-radius: 10px;
-
-    font-family: 'Inter', sans-serif;
-
-    font-size: 14px;
-
-    font-weight: 600;
-
-    cursor: pointer;
-
-    transition: .3s;
-}
-
-
-/* Edit Button */
-
-.transcript-actions .secondary-btn {
-    background: #eef5ff;
-
-    color: #0057B8;
-
-    border: 1px solid #dbe7f4;
-}
-
-.transcript-actions .secondary-btn:hover {
-    background: #0057B8;
-
-    color: #ffffff;
-}
-
-
-/* Continue Button */
-
-.transcript-actions .primary-btn {
-    border: none;
-
-    background: linear-gradient(
-        90deg,
-        #0057B8,
-        #00AEEF
-    );
-
-    color: white;
-}
-
-.transcript-actions .primary-btn:hover {
-    transform: translateY(-1px);
-
-    box-shadow:
-        0 8px 18px rgba(0, 87, 184, .20);
-}
-
-
-/* ==========================================
-   TRANSCRIPT STATUS
-========================================== */
-
-.transcript-status {
-    margin-top: 15px;
-
-    min-height: 20px;
-
-    font-size: 14px;
-
-    font-weight: 500;
-}
-
-.transcript-status.success {
-    color: #15803d;
-}
-
-.transcript-status.error {
-    color: #dc2626;
-}
-
-.transcript-status.editing {
-    color: #0057B8;
-}
-
-.transcript-status.loading {
-    color: #64748b;
-}
-
-
-/* ==========================================
-   MOBILE RESPONSIVENESS
-========================================== */
-
-@media (max-width: 768px) {
-
+@media (max-width: 720px) {
     body {
+        padding: 18px;
+    }
+
+    .workflow-card,
+    .hero-card {
         padding: 20px;
+        border-radius: 22px;
     }
 
-    .card {
-        padding: 25px;
-    }
-
-    .record-section {
+    .record-row,
+    .transcript-actions,
+    .crm-actions,
+    .preview-buttons {
         flex-direction: column;
     }
 
-    .header h1 {
-        font-size: 28px;
-    }
-}
-
-
-@media (max-width: 600px) {
-
-    .transcript-section {
-        padding: 20px;
-    }
-
-    .transcript-actions {
-        flex-direction: column;
-    }
-
-    .transcript-actions button {
+    .secondary-btn,
+    .primary-btn,
+    .delete-btn,
+    .submit-btn {
         width: 100%;
+        flex: 1 1 auto;
     }
 
-    .transcript-header h2 {
-        font-size: 21px;
+    #transcriptText {
+        min-height: 200px;
     }
 }

@@ -2,12 +2,13 @@
 // Voice CRM - Employee Frontend
 // =====================================
 
+const API_BASE_URL = "http://127.0.0.1:8000";
+
 // =====================================
-// HTML ELEMENTS
+// DOM ELEMENTS
 // =====================================
 
 const form = document.getElementById("uploadForm");
-
 const employeeName = document.getElementById("employeeName");
 const audioFile = document.getElementById("audioFile");
 
@@ -22,197 +23,632 @@ const audioPreview = document.getElementById("audioPreview");
 const audioPlayer = document.getElementById("audioPlayer");
 const deleteRecording = document.getElementById("deleteRecording");
 
-// =====================================
-// STEP 2 ELEMENTS
-// =====================================
+const crmSection = document.getElementById("crmSection");
+const crmSummary = document.getElementById("crmSummary");
 
-const transcriptSection =
-    document.getElementById("transcriptSection");
+const missingFieldsSection = document.getElementById("missingFieldsSection");
+const missingFieldsMessage = document.getElementById("missingFieldsMessage");
+const missingFieldsForm = document.getElementById("missingFieldsForm");
 
-const transcriptText =
-    document.getElementById("transcriptText");
+const crmStatus = document.getElementById("crmStatus");
 
-const editTranscriptBtn =
-    document.getElementById("editTranscriptBtn");
-
-const continueTranscriptBtn =
-    document.getElementById("continueTranscriptBtn");
-
-const transcriptStatus =
-    document.getElementById("transcriptStatus");
+const recordAgainBtn = document.getElementById("recordAgainBtn");
+const submitReportBtn = document.getElementById("submitReportBtn");
 
 
 // =====================================
-// RECORDING VARIABLES
+// CRM FIELDS TO DISPLAY
+// =====================================
+
+const SUMMARY_FIELDS = [
+    ["Created_By", "Employee"],
+    ["Company", "Company"],
+    ["Attendees", "Attendees"],
+    ["DateofVisit", "Date of Visit"],
+    ["ObjectiveofVisit", "Objective of Visit"],
+    ["NameDesignationofPersonMet", "Doctor / Person"],
+    ["Current_Consumption", "Current Consumption"],
+    ["PotentialAccountVol_CM", "Potential Account Volume"],
+    ["Current_Supplier", "Current Supplier"],
+    ["CommercialOfferingBy_Competition", "Competition / Commercial Offering"],
+    ["RemarksWayForward", "Remarks / Way Forward"],
+    ["MOMActionItems", "MOM / Action Items"],
+    ["SPANCOP_Status", "SPANCOP Status"],
+    ["Created_Date", "Created Date"],
+    ["CompanyCustomerCode", "Customer Code"],
+    ["Company_Segment", "Company Segment"],
+    ["CompanyCustomerSince", "Customer Since"],
+    ["Sub_Department", "Sub Department"],
+    ["Item_Type", "Medicine / Item"],
+    ["Path", "Path"]
+];
+
+
+// =====================================
+// REQUIRED FIELDS
+// =====================================
+
+const REQUIRED_FIELD_CONFIG = {
+    NameDesignationofPersonMet: {
+        label: "Doctor / Person Name",
+        type: "text"
+    },
+
+    Item_Type: {
+        label: "Medicine / Item Name",
+        type: "text"
+    },
+
+    DateofVisit: {
+        label: "Date of Visit",
+        type: "date"
+    }
+};
+
+
+// =====================================
+// VARIABLES
 // =====================================
 
 let mediaRecorder = null;
-
 let audioChunks = [];
-
 let recordedBlob = null;
+let currentAudioObjectUrl = "";
+
+let currentCrmData = null;
+let currentMissingFieldKeys = [];
 
 
 // =====================================
-// STORE TRANSCRIPT
+// HELPER FUNCTIONS
 // =====================================
 
-let currentTranscript = "";
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
 
 
 // =====================================
-// BACKEND URL
+// LOADING
 // =====================================
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+function setLoadingMessage(title, body) {
+    loading.innerHTML = `${title}<br><br>${body}`;
+}
+
+
+function showLoading(title, body) {
+    setLoadingMessage(title, body);
+    loading.classList.remove("hidden");
+}
+
+
+function hideLoading() {
+    loading.classList.add("hidden");
+}
+
+
+// =====================================
+// CRM STATUS
+// =====================================
+
+function setCrmStatus(message, className = "") {
+    // FIX: make sure the status line is actually visible even if we
+    // haven't rendered CRM data yet (e.g. an error before extraction
+    // finishes). Previously crmSection could still be hidden here,
+    // silently swallowing the message.
+    crmSection.classList.remove("hidden");
+
+    crmStatus.textContent = message;
+
+    crmStatus.className = className
+        ? `status-line ${className}`
+        : "status-line";
+}
+
+
+// =====================================
+// AUDIO PREVIEW
+// =====================================
+
+function clearAudioPreview() {
+
+    if (currentAudioObjectUrl) {
+        URL.revokeObjectURL(currentAudioObjectUrl);
+        currentAudioObjectUrl = "";
+    }
+
+    audioPlayer.src = "";
+    audioPreview.classList.add("hidden");
+}
+
+
+function showAudioPreview(blobOrFile) {
+
+    clearAudioPreview();
+
+    currentAudioObjectUrl = URL.createObjectURL(blobOrFile);
+
+    audioPlayer.src = currentAudioObjectUrl;
+
+    audioPreview.classList.remove("hidden");
+}
+
+
+// =====================================
+// CLEAR AUDIO STATE
+// =====================================
+
+function clearAudioState({ clearFile = false } = {}) {
+
+    if (
+        mediaRecorder &&
+        mediaRecorder.state === "recording"
+    ) {
+        try {
+            mediaRecorder.stop();
+        } catch (error) {
+            console.warn(
+                "Unable to stop active recorder.",
+                error
+            );
+        }
+    }
+
+    audioChunks = [];
+    recordedBlob = null;
+
+    clearAudioPreview();
+
+    if (clearFile) {
+        audioFile.value = "";
+    }
+
+    recordBtn.disabled = false;
+    stopBtn.disabled = true;
+
+    recordBtn.textContent = "🎤 Start Recording";
+}
+
+
+// =====================================
+// RESET CRM STATE
+// =====================================
+
+function resetCRMState() {
+
+    crmSection.classList.add("hidden");
+
+    success.classList.add("hidden");
+
+    crmSummary.innerHTML = "";
+
+    missingFieldsSection.classList.add("hidden");
+
+    missingFieldsMessage.textContent = "";
+
+    missingFieldsForm.innerHTML = "";
+
+    currentCrmData = null;
+
+    currentMissingFieldKeys = [];
+
+    submitReportBtn.disabled = true;
+
+    recordId.textContent = "---";
+
+    crmStatus.textContent = "";
+    crmStatus.className = "status-line";
+
+    hideLoading();
+}
+
+
+// =====================================
+// RESET COMPLETE WORKFLOW
+// =====================================
+
+function resetEntireWorkflow() {
+
+    clearAudioState({
+        clearFile: true
+    });
+
+    resetCRMState();
+}
+
+
+// =====================================
+// GET AUDIO
+// =====================================
+
+function getAudioFileToSubmit() {
+
+    if (
+        audioFile.files &&
+        audioFile.files.length > 0
+    ) {
+        return audioFile.files[0];
+    }
+
+    return recordedBlob;
+}
+
+
+// =====================================
+// RENDER CRM DATA
+// =====================================
+
+function renderCrmSummary(data) {
+
+    const summaryHtml = SUMMARY_FIELDS.map(
+        ([key, label]) => {
+
+            const rawValue = data?.[key];
+
+            const isMissing =
+                rawValue === null ||
+                rawValue === undefined ||
+                String(rawValue).trim() === "";
+
+            const value = isMissing
+                ? "Not extracted"
+                : escapeHtml(rawValue);
+
+            const missingClass =
+                isMissing
+                    ? " is-missing"
+                    : "";
+
+            return `
+                <div class="summary-item">
+
+                    <span class="summary-label">
+                        ${escapeHtml(label)}
+                    </span>
+
+                    <div class="summary-value${missingClass}">
+                        ${value}
+                    </div>
+
+                </div>
+            `;
+        }
+    ).join("");
+
+    crmSummary.innerHTML = summaryHtml;
+}
+
+
+// =====================================
+// RENDER MISSING FIELDS
+// =====================================
+
+function renderMissingFields(
+    fieldKeys,
+    data
+) {
+
+    if (!fieldKeys.length) {
+
+        missingFieldsSection.classList.add(
+            "hidden"
+        );
+
+        missingFieldsMessage.textContent = "";
+
+        missingFieldsForm.innerHTML = "";
+
+        return;
+    }
+
+
+    missingFieldsSection.classList.remove(
+        "hidden"
+    );
+
+
+    missingFieldsMessage.textContent =
+        "The following required information could not be extracted. Please enter it manually.";
+
+
+    missingFieldsForm.innerHTML =
+        fieldKeys.map(
+            (fieldKey) => {
+
+                const config =
+                    REQUIRED_FIELD_CONFIG[fieldKey] ||
+                    {
+                        label: fieldKey,
+                        type: "text"
+                    };
+
+
+                const value =
+                    data?.[fieldKey] ?? "";
+
+
+                return `
+                    <div class="missing-field">
+
+                        <label for="manual-${fieldKey}">
+                            ${escapeHtml(config.label)}
+                        </label>
+
+                        <input
+                            id="manual-${fieldKey}"
+                            class="missing-input"
+                            type="${config.type}"
+                            value="${escapeHtml(value)}"
+                            placeholder="Enter ${escapeHtml(config.label)}"
+                        >
+
+                    </div>
+                `;
+            }
+        ).join("");
+}
+
+
+// =====================================
+// GET MANUAL FIELDS
+// =====================================
+
+function getManualFields() {
+
+    const manualFields = {};
+
+    currentMissingFieldKeys.forEach(
+        (fieldKey) => {
+
+            const input =
+                document.getElementById(
+                    `manual-${fieldKey}`
+                );
+
+            if (!input) {
+                return;
+            }
+
+            const value =
+                input.value.trim();
+
+            if (value) {
+                manualFields[fieldKey] = value;
+            }
+        }
+    );
+
+    return manualFields;
+}
+
+
+// =====================================
+// SHOW CRM REVIEW
+// =====================================
+
+function showCrmReview(
+    data,
+    missingFieldLabels,
+    missingFieldKeys,
+    status
+) {
+
+    currentCrmData = data || {};
+
+    currentMissingFieldKeys =
+        missingFieldKeys || [];
+
+
+    crmSection.classList.remove(
+        "hidden"
+    );
+
+
+    renderCrmSummary(
+        currentCrmData
+    );
+
+
+    renderMissingFields(
+        currentMissingFieldKeys,
+        currentCrmData
+    );
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Even if fields are missing,
+     * user can see the extracted data.
+     *
+     * If everything is complete,
+     * Submit Report is enabled.
+     *
+     * If something is missing,
+     * user fills the missing fields
+     * and then submits.
+     */
+
+    submitReportBtn.disabled = false;
+
+
+    if (
+        status === "missing_fields"
+    ) {
+
+        setCrmStatus(
+            `⚠️ Missing required information: ${missingFieldLabels.join(", ")}`,
+            "error"
+        );
+
+    } else {
+
+        setCrmStatus(
+            "✅ All required CRM information was extracted. Review and submit the report.",
+            "success"
+        );
+    }
+}
 
 
 // =====================================
 // START RECORDING
 // =====================================
 
-recordBtn.addEventListener("click", async () => {
+recordBtn.addEventListener(
+    "click",
+    async () => {
 
-    try {
+        try {
 
-        const stream =
-            await navigator.mediaDevices.getUserMedia({
-                audio: true
-            });
-
-
-        mediaRecorder =
-            new MediaRecorder(stream);
+            resetEntireWorkflow();
 
 
-        audioChunks = [];
-
-        recordedBlob = null;
-
-
-        audioPlayer.src = "";
-
-        audioPreview.classList.add("hidden");
+            const stream =
+                await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
 
 
-        // ---------------------------------
-        // Receive audio chunks
-        // ---------------------------------
+            audioFile.value = "";
 
-        mediaRecorder.ondataavailable = (event) => {
-
-            if (event.data.size > 0) {
-
-                audioChunks.push(event.data);
-
-            }
-
-        };
+            clearAudioState();
 
 
-        // ---------------------------------
-        // Recording stopped
-        // ---------------------------------
+            mediaRecorder =
+                new MediaRecorder(stream);
 
-        mediaRecorder.onstop = () => {
 
-            recordedBlob = new Blob(
-                audioChunks,
-                {
-                    type: "audio/webm"
-                }
+            audioChunks = [];
+
+            recordedBlob = null;
+
+
+            mediaRecorder.ondataavailable =
+                (event) => {
+
+                    if (
+                        event.data.size > 0
+                    ) {
+
+                        audioChunks.push(
+                            event.data
+                        );
+                    }
+                };
+
+
+            mediaRecorder.onstop =
+                () => {
+
+                    recordedBlob =
+                        new Blob(
+                            audioChunks,
+                            {
+                                type: "audio/webm"
+                            }
+                        );
+
+
+                    if (
+                        recordedBlob.size === 0
+                    ) {
+
+                        clearAudioState({
+                            clearFile: false
+                        });
+
+                        alert(
+                            "Recording failed."
+                        );
+
+                        return;
+                    }
+
+
+                    showAudioPreview(
+                        recordedBlob
+                    );
+
+
+                    if (
+                        mediaRecorder &&
+                        mediaRecorder.stream
+                    ) {
+
+                        mediaRecorder.stream
+                            .getTracks()
+                            .forEach(
+                                (track) =>
+                                    track.stop()
+                            );
+                    }
+
+
+                    recordBtn.disabled = false;
+
+                    stopBtn.disabled = true;
+
+                    recordBtn.textContent =
+                        "🎤 Start Recording";
+
+
+                    console.log(
+                        "🎙 Recording created successfully"
+                    );
+                };
+
+
+            mediaRecorder.start();
+
+
+            recordBtn.disabled = true;
+
+            stopBtn.disabled = false;
+
+            recordBtn.textContent =
+                "🔴 Recording...";
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Microphone permission denied."
             );
-
-
-            if (recordedBlob.size === 0) {
-
-                alert("Recording failed.");
-
-                return;
-
-            }
-
-
-            console.log(
-                "🎙 Recording created successfully"
-            );
-
-
-            const audioURL =
-                URL.createObjectURL(recordedBlob);
-
-
-            audioPlayer.src = audioURL;
-
-
-            audioPreview.classList.remove(
-                "hidden"
-            );
-
-
-            // Stop microphone
-            mediaRecorder.stream
-                .getTracks()
-                .forEach(track => track.stop());
-
-        };
-
-
-        // Start recording
-        mediaRecorder.start();
-
-
-        recordBtn.disabled = true;
-
-        stopBtn.disabled = false;
-
-        recordBtn.textContent =
-            "🔴 Recording...";
-
-
+        }
     }
-
-    catch (error) {
-
-        console.error(error);
-
-        alert(
-            "Microphone permission denied."
-        );
-
-    }
-
-});
+);
 
 
 // =====================================
 // STOP RECORDING
 // =====================================
 
-stopBtn.addEventListener("click", () => {
+stopBtn.addEventListener(
+    "click",
+    () => {
 
-    if (
-        mediaRecorder &&
-        mediaRecorder.state === "recording"
-    ) {
+        if (
+            mediaRecorder &&
+            mediaRecorder.state === "recording"
+        ) {
 
-        mediaRecorder.stop();
+            mediaRecorder.stop();
 
-        console.log(
-            "⏹ Recording stopped"
-        );
-
+            console.log(
+                "⏹ Recording stopped"
+            );
+        }
     }
-
-
-    recordBtn.disabled = false;
-
-    stopBtn.disabled = true;
-
-    recordBtn.textContent =
-        "🎤 Start Recording";
-
-});
+);
 
 
 // =====================================
@@ -223,70 +659,56 @@ deleteRecording.addEventListener(
     "click",
     () => {
 
-        recordedBlob = null;
-
-        audioChunks = [];
-
-        audioPlayer.src = "";
-
-        audioPreview.classList.add(
-            "hidden"
-        );
-
-        audioFile.value = "";
-
-        recordBtn.disabled = false;
-
-        stopBtn.disabled = true;
-
-        recordBtn.textContent =
-            "🎤 Start Recording";
-
-
-        // Hide transcript if deleting audio
-        transcriptSection.classList.add(
-            "hidden"
-        );
-
-        transcriptText.value = "";
-
-        currentTranscript = "";
-
+        resetEntireWorkflow();
 
         console.log(
             "🗑 Recording deleted"
         );
-
     }
 );
 
 
 // =====================================
-// AUDIO UPLOAD
+// AUDIO FILE SELECTED
 // =====================================
 
 audioFile.addEventListener(
     "change",
     () => {
 
-        if (audioFile.files.length > 0) {
-
-            // Hide previous transcript
-            transcriptSection.classList.add(
-                "hidden"
-            );
-
-            transcriptText.value = "";
-
-            currentTranscript = "";
-
-            console.log(
-                "📁 Audio file selected:",
-                audioFile.files[0].name
-            );
-
+        if (
+            audioFile.files.length === 0
+        ) {
+            return;
         }
 
+
+        if (
+            mediaRecorder &&
+            mediaRecorder.state === "recording"
+        ) {
+
+            mediaRecorder.stop();
+        }
+
+
+        recordedBlob = null;
+
+        audioChunks = [];
+
+
+        resetCRMState();
+
+
+        showAudioPreview(
+            audioFile.files[0]
+        );
+
+
+        console.log(
+            "📁 Audio file selected:",
+            audioFile.files[0].name
+        );
     }
 );
 
@@ -297,13 +719,18 @@ audioFile.addEventListener(
 
 form.addEventListener(
     "submit",
-    async function (event) {
+    async (event) => {
 
         event.preventDefault();
 
 
+        console.log(
+            "🎙 Submitting audio..."
+        );
+
+
         // ---------------------------------
-        // Validate Employee Name
+        // CHECK EMPLOYEE NAME
         // ---------------------------------
 
         if (
@@ -317,38 +744,47 @@ form.addEventListener(
             employeeName.focus();
 
             return;
-
         }
 
 
         // ---------------------------------
-        // Hide previous results
+        // CHECK AUDIO
         // ---------------------------------
 
-        success.classList.add(
-            "hidden"
+        const audioSource =
+            getAudioFileToSubmit();
+
+
+        if (!audioSource) {
+
+            alert(
+                "Please upload an audio file or record audio first."
+            );
+
+            return;
+        }
+
+
+        // ---------------------------------
+        // RESET PREVIOUS RESULTS
+        // ---------------------------------
+
+        resetCRMState();
+
+
+        showLoading(
+            "⏳ Processing audio...",
+            "AI is transcribing your audio. This can take a moment."
         );
 
-        transcriptSection.classList.add(
-            "hidden"
-        );
-
-
-        loading.classList.remove(
-            "hidden"
-        );
-
 
         // ---------------------------------
-        // Prepare FormData
+        // CREATE FORM DATA
         // ---------------------------------
 
-        const formData = new FormData();
+        const formData =
+            new FormData();
 
-
-        // ---------------------------------
-        // Uploaded File
-        // ---------------------------------
 
         if (
             audioFile.files.length > 0
@@ -359,54 +795,26 @@ form.addEventListener(
                 audioFile.files[0]
             );
 
-        }
-
-
-        // ---------------------------------
-        // Recorded Audio
-        // ---------------------------------
-
-        else if (recordedBlob) {
+        } else {
 
             formData.append(
                 "file",
                 recordedBlob,
                 "recording.webm"
             );
-
         }
 
 
         // ---------------------------------
-        // No Audio
+        // SEND AUDIO TO BACKEND
         // ---------------------------------
-
-        else {
-
-            loading.classList.add(
-                "hidden"
-            );
-
-            alert(
-                "Please upload an audio file or record audio first."
-            );
-
-            return;
-
-        }
-
 
         try {
 
             console.log(
-                "📤 Sending audio for transcription..."
+                "Calling /transcribe-audio..."
             );
 
-
-            // =================================
-            // STEP 1
-            // AUDIO → ENGLISH TRANSCRIPT
-            // =================================
 
             const response =
                 await fetch(
@@ -420,11 +828,12 @@ form.addEventListener(
 
             if (!response.ok) {
 
-                throw new Error(
-                    "Transcription server error: " +
-                    response.status
-                );
+                const errorText =
+                    await response.text();
 
+                throw new Error(
+                    `Audio processing failed: ${response.status} ${errorText}`
+                );
             }
 
 
@@ -433,198 +842,43 @@ form.addEventListener(
 
 
             console.log(
-                "✅ Transcription response:",
+                "Audio processing response:",
                 data
             );
 
 
-            // ---------------------------------
-            // Check transcript
-            // ---------------------------------
-
-            if (
-                !data.transcript
-            ) {
+            if (!data.transcript) {
 
                 throw new Error(
                     "Transcript was not returned by backend."
                 );
-
             }
 
 
-            // =================================
-            // STEP 2
-            // SHOW ENGLISH TRANSCRIPT
-            // =================================
+            // ---------------------------------
+            // STEP 2:
+            // CRM EXTRACTION (automatic — the
+            // transcript itself is never shown
+            // to the user)
+            // ---------------------------------
 
-            currentTranscript =
-                data.transcript;
-
-
-            transcriptText.value =
-                currentTranscript;
-
-
-            loading.classList.add(
-                "hidden"
+            // FIX: update the loading message so the
+            // user gets feedback that we've moved on
+            // to CRM extraction, instead of the same
+            // "Processing audio..." text the whole time.
+            showLoading(
+                "🧠 Extracting CRM information...",
+                "AI is reviewing the conversation and filling in the CRM fields."
             );
-
-
-            transcriptSection.classList.remove(
-                "hidden"
-            );
-
-
-            transcriptStatus.textContent =
-                "Transcript generated successfully. Please review it.";
-
-
-            transcriptStatus.className =
-                "transcript-status success";
-
 
             console.log(
-                "✅ English transcript displayed."
-            );
-
-        }
-
-        catch (error) {
-
-            loading.classList.add(
-                "hidden"
+                "Calling /process-transcript..."
             );
 
 
-            console.error(
-                "❌ Transcription error:",
-                error
-            );
-
-
-            alert(
-                "❌ " + error.message
-            );
-
-        }
-
-    }
-);
-
-
-// =====================================
-// EDIT TRANSCRIPT
-// =====================================
-
-editTranscriptBtn.addEventListener(
-    "click",
-    () => {
-
-        // ---------------------------------
-        // Enable editing
-        // ---------------------------------
-
-        transcriptText.disabled = false;
-
-        transcriptText.focus();
-
-
-        editTranscriptBtn.textContent =
-            "✓ Editing";
-
-
-        transcriptStatus.textContent =
-            "You can now edit the transcript.";
-
-
-        transcriptStatus.className =
-            "transcript-status editing";
-
-
-        console.log(
-            "✏️ Transcript editing enabled"
-        );
-
-    }
-);
-
-
-// =====================================
-// CONTINUE TO CRM EXTRACTION
-// =====================================
-
-continueTranscriptBtn.addEventListener(
-    "click",
-    async () => {
-
-        // ---------------------------------
-        // Get edited transcript
-        // ---------------------------------
-
-        const editedTranscript =
-            transcriptText.value.trim();
-
-
-        // ---------------------------------
-        // Validate transcript
-        // ---------------------------------
-
-        if (!editedTranscript) {
-
-            transcriptStatus.textContent =
-                "Please enter a transcript before continuing.";
-
-            transcriptStatus.className =
-                "transcript-status error";
-
-            return;
-
-        }
-
-
-        // ---------------------------------
-        // Update stored transcript
-        // ---------------------------------
-
-        currentTranscript =
-            editedTranscript;
-
-
-        // ---------------------------------
-        // Disable button
-        // ---------------------------------
-
-        continueTranscriptBtn.disabled =
-            true;
-
-
-        editTranscriptBtn.disabled =
-            true;
-
-
-        transcriptStatus.textContent =
-            "⏳ AI is extracting CRM fields...";
-
-
-        transcriptStatus.className =
-            "transcript-status loading";
-
-
-        console.log(
-            "➡️ Sending edited transcript to AI..."
-        );
-
-
-        try {
-
-            // =================================
-            // SEND TRANSCRIPT TO BACKEND
-            // =================================
-
-            const response =
+            const crmResponse =
                 await fetch(
-                    `${API_BASE_URL}/extract-crm`,
+                    `${API_BASE_URL}/process-transcript`,
                     {
                         method: "POST",
 
@@ -639,17 +893,195 @@ continueTranscriptBtn.addEventListener(
                                 employeeName.value.trim(),
 
                             transcript:
-                                editedTranscript
-
+                                data.transcript
                         })
-
                     }
                 );
 
 
+            if (!crmResponse.ok) {
+
+                const errorText =
+                    await crmResponse.text();
+
+                throw new Error(
+                    `CRM extraction failed: ${crmResponse.status} ${errorText}`
+                );
+            }
+
+
+            const crmData =
+                await crmResponse.json();
+
+
+            console.log(
+                "CRM extraction response:",
+                crmData
+            );
+
+
             // ---------------------------------
-            // Server error
+            // SHOW CRM RESULT
             // ---------------------------------
+
+            hideLoading();
+
+
+            showCrmReview(
+                crmData.data || {},
+
+                crmData.missing_required_fields || [],
+
+                crmData.missing_required_field_keys || [],
+
+                crmData.status
+            );
+
+
+        } catch (error) {
+
+            hideLoading();
+
+            console.error(
+                "❌ Processing error:",
+                error
+            );
+
+
+            setCrmStatus(
+                error.message,
+                "error"
+            );
+
+
+            alert(
+                `❌ ${error.message}`
+            );
+        }
+    }
+);
+
+
+// =====================================
+// SUBMIT FINAL CRM REPORT
+// =====================================
+
+submitReportBtn.addEventListener(
+    "click",
+    async () => {
+
+        if (!currentCrmData) {
+
+            setCrmStatus(
+                "Please process the audio first.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        // ---------------------------------
+        // GET MANUAL VALUES
+        // ---------------------------------
+
+        const manualFields =
+            getManualFields();
+
+
+        // ---------------------------------
+        // CHECK STILL MISSING
+        // ---------------------------------
+
+        const missingInputs =
+            currentMissingFieldKeys.filter(
+                (fieldKey) =>
+                    !manualFields[fieldKey]
+            );
+
+
+        if (
+            missingInputs.length > 0
+        ) {
+
+            const labels =
+                missingInputs.map(
+                    (fieldKey) =>
+                        REQUIRED_FIELD_CONFIG[
+                            fieldKey
+                        ]?.label ||
+                        fieldKey
+                );
+
+
+            setCrmStatus(
+                `Please complete: ${labels.join(", ")}`,
+                "error"
+            );
+
+            return;
+        }
+
+
+        // ---------------------------------
+        // SAVE
+        // ---------------------------------
+
+        console.log(
+            "💾 Saving final CRM report..."
+        );
+
+
+        submitReportBtn.disabled = true;
+
+        recordAgainBtn.disabled = true;
+
+
+        showLoading(
+            "💾 Saving CRM report...",
+            "The final report is being saved to Supabase."
+        );
+
+
+        setCrmStatus(
+            "Submitting final CRM report...",
+            "loading"
+        );
+
+
+        let savedSuccessfully = false;
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API_BASE_URL}/save-crm`,
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            employee_name:
+                                employeeName.value.trim(),
+
+                            transcript:
+                                "",
+
+                            data:
+                                currentCrmData,
+
+                            manual_fields:
+                                manualFields
+                        })
+                    }
+                );
+
 
             if (!response.ok) {
 
@@ -657,108 +1089,143 @@ continueTranscriptBtn.addEventListener(
                     await response.text();
 
                 throw new Error(
-                    "CRM extraction failed: " +
-                    response.status +
-                    " " +
-                    errorText
+                    `CRM save failed: ${response.status} ${errorText}`
                 );
-
             }
 
 
-            const data =
+            const result =
                 await response.json();
 
 
             console.log(
-                "✅ CRM extraction response:",
-                data
+                "Save response:",
+                result
             );
 
 
-            // =================================
-            // CRM EXTRACTION SUCCESS
-            // =================================
+            // ---------------------------------
+            // STILL INCOMPLETE
+            // ---------------------------------
 
-            transcriptStatus.textContent =
-                "✅ CRM fields extracted successfully.";
+            if (
+                result.status === "incomplete"
+            ) {
+
+                currentCrmData =
+                    result.data ||
+                    currentCrmData;
 
 
-            transcriptStatus.className =
-                "transcript-status success";
+                currentMissingFieldKeys =
+                    result.missing_required_field_keys ||
+                    currentMissingFieldKeys;
+
+
+                renderCrmSummary(
+                    currentCrmData
+                );
+
+
+                renderMissingFields(
+                    currentMissingFieldKeys,
+                    currentCrmData
+                );
+
+
+                hideLoading();
+
+
+                setCrmStatus(
+                    `⚠️ Still missing: ${(result.missing_required_fields || []).join(", ")}`,
+                    "error"
+                );
+
+
+                return;
+            }
 
 
             // ---------------------------------
-            // Show success
+            // SUCCESS
             // ---------------------------------
+
+            hideLoading();
+
+
+            currentCrmData =
+                result.data ||
+                currentCrmData;
+
+
+            recordId.textContent =
+                result.record_id ||
+                currentCrmData?.Record_ID ||
+                "Generated Successfully";
+
 
             success.classList.remove(
                 "hidden"
             );
 
 
-            if (data.Record_ID) {
-
-                recordId.textContent =
-                    data.Record_ID;
-
-            }
-
-            else if (
-                data.record_id
-            ) {
-
-                recordId.textContent =
-                    data.record_id;
-
-            }
-
-            else {
-
-                recordId.textContent =
-                    "Generated Successfully";
-
-            }
-
-
-            console.log(
-                "🎉 CRM process completed."
+            setCrmStatus(
+                "✅ Report saved successfully to Supabase.",
+                "success"
             );
 
 
-        }
+            submitReportBtn.disabled = true;
 
-        catch (error) {
+            savedSuccessfully = true;
+
+
+        } catch (error) {
+
+            hideLoading();
+
 
             console.error(
-                "❌ CRM extraction error:",
+                "❌ CRM save error:",
                 error
             );
 
 
-            transcriptStatus.textContent =
-                "❌ " + error.message;
-
-
-            transcriptStatus.className =
-                "transcript-status error";
+            setCrmStatus(
+                error.message,
+                "error"
+            );
 
 
             alert(
-                "❌ " + error.message
+                `❌ ${error.message}`
             );
 
+
+        } finally {
+
+            if (!savedSuccessfully) {
+                submitReportBtn.disabled = false;
+            }
+
+            recordAgainBtn.disabled = false;
         }
+    }
+);
 
-        finally {
 
-            continueTranscriptBtn.disabled =
-                false;
+// =====================================
+// RECORD AGAIN
+// =====================================
 
-            editTranscriptBtn.disabled =
-                false;
+recordAgainBtn.addEventListener(
+    "click",
+    () => {
 
-        }
+        resetEntireWorkflow();
 
+        console.log(
+            "🔁 Workflow reset for a new recording."
+        );
     }
 );

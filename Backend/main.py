@@ -1,10 +1,24 @@
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, UploadFile, File
-from pydantic import BaseModel
-import shutil
 import os
+import sys
+import shutil
+import uuid
+from pathlib import Path
+from typing import Any, Dict, Optional
 
-from ai_engine import transcribe_audio, process_audio, get_all_records
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from ai_engine import (
+    extract_crm_data,
+    finalize_crm_report,
+    get_all_records,
+    transcribe_audio,
+)
 
 
 # ==========================================
@@ -21,12 +35,9 @@ app = FastAPI(title="Voice CRM API")
 app.add_middleware(
     CORSMiddleware,
 
-    allow_origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500"
-    ],
+    allow_origins=["*"],
 
-    allow_credentials=True,
+    allow_credentials=False,
 
     allow_methods=["*"],
 
@@ -52,8 +63,40 @@ os.makedirs(
 
 class TranscriptRequest(BaseModel):
 
-    transcript: str
+    transcript: str = Field(...)
     employee_name: str = ""
+
+
+class FinalizeRequest(BaseModel):
+
+    transcript: str = ""
+    employee_name: str = ""
+    data: Dict[str, Any] = Field(default_factory=dict)
+    manual_fields: Dict[str, Any] = Field(default_factory=dict)
+
+
+def save_uploaded_audio(file: UploadFile) -> str:
+
+    file_name = file.filename or "audio.webm"
+    extension = os.path.splitext(file_name)[1] or ".webm"
+    safe_name = f"{uuid.uuid4().hex}{extension}"
+
+    file_path = os.path.join(
+        UPLOAD_FOLDER,
+        safe_name
+    )
+
+    with open(
+        file_path,
+        "wb"
+    ) as buffer:
+
+        shutil.copyfileobj(
+            file.file,
+            buffer
+        )
+
+    return file_path
 
 
 # ==========================================
@@ -82,24 +125,7 @@ async def transcribe_audio_endpoint(
     print("🎙 TRANSCRIPTION REQUEST RECEIVED")
     print("====================================")
 
-    file_path = os.path.join(
-        UPLOAD_FOLDER,
-        file.filename
-    )
-
-    # --------------------------------------
-    # Save audio
-    # --------------------------------------
-
-    with open(
-        file_path,
-        "wb"
-    ) as buffer:
-
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
+    file_path = save_uploaded_audio(file)
 
     print("✅ Audio saved:", file_path)
 
@@ -109,16 +135,20 @@ async def transcribe_audio_endpoint(
 
     print("🎙 Starting transcription...")
 
-    transcript = transcribe_audio(
-        file_path
-    )
+    try:
+
+        transcript = transcribe_audio(file_path)
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Transcription failed: {exc}"
+        ) from exc
 
     print("✅ English transcript generated")
 
-    print("\n----------- ENGLISH TRANSCRIPT -----------")
-    print(transcript)
-    print("------------------------------------------\n")
-
+   
     return {
         "status": "success",
         "transcript": transcript
@@ -127,55 +157,102 @@ async def transcribe_audio_endpoint(
 
 # ==========================================
 # STEP 2
-# EDITED TRANSCRIPT → CRM
+# EDITED TRANSCRIPT → CRM REVIEW
 # ==========================================
 
-@app.post("/process-transcript")
-async def process_transcript(
-    request: TranscriptRequest
-):
+@app.post("/extract-crm")
+async def extract_crm(request: TranscriptRequest):
 
     print("\n====================================")
-    print("📝 EDITED TRANSCRIPT RECEIVED")
+    print("📝 FINAL TRANSCRIPT RECEIVED")
     print("====================================")
 
     print("Employee:", request.employee_name)
-
     print("\n----------- FINAL TRANSCRIPT -----------")
     print(request.transcript)
     print("-----------------------------------------\n")
 
-    # --------------------------------------
-    # Validate transcript
-    # --------------------------------------
+    if not request.transcript.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Transcript cannot be empty."
+        )
+
+    try:
+
+        result = extract_crm_data(
+            transcript=request.transcript,
+            employee_name=request.employee_name
+        )
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"CRM extraction failed: {exc}"
+        ) from exc
+
+    print("✅ CRM review complete")
+
+    return result
+
+
+@app.post("/save-crm")
+async def save_crm(request: FinalizeRequest):
+
+    print("\n====================================")
+    print("💾 FINAL CRM SAVE REQUEST RECEIVED")
+    print("====================================")
+
+    print("Employee:", request.employee_name)
+
+    try:
+
+        result = finalize_crm_report(
+            data=request.data,
+            manual_fields=request.manual_fields,
+            employee_name=request.employee_name,
+            transcript=request.transcript
+        )
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"CRM save failed: {exc}"
+        ) from exc
+
+    return result
+
+
+@app.post("/process-transcript")
+async def process_transcript(request: TranscriptRequest):
+
+    print("\n====================================")
+    print("🧠 PROCESS TRANSCRIPT REQUEST RECEIVED")
+    print("====================================")
+
+    print("Employee:", request.employee_name)
+    print("\n----------- FINAL EDITED TRANSCRIPT -----------")
+    print(request.transcript)
+    print("----------------------------------------------\n")
 
     if not request.transcript.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Transcript cannot be empty."
+        )
 
-        print("❌ Transcript is empty")
-
-        return {
-            "status": "error",
-            "message": "Transcript cannot be empty."
-        }
-
-    # --------------------------------------
-    # Process edited transcript
-    # --------------------------------------
-
-    print("🤖 Sending transcript to AI...")
-    print("🔹 Extracting CRM fields...")
-
-    result = process_audio(
-        audio_path=None,
-        transcript_text=request.transcript,
-        employee_name=request.employee_name
-    )
-
-    print("✅ CRM processing completed")
-
-    # --------------------------------------
-    # Return result
-    # --------------------------------------
+    try:
+        result = extract_crm_data(
+            transcript=request.transcript,
+            employee_name=request.employee_name
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"CRM extraction failed: {exc}"
+        ) from exc
 
     return result
 
@@ -193,40 +270,26 @@ async def upload_audio(
     print("📤 DIRECT AUDIO UPLOAD REQUEST")
     print("====================================")
 
-    file_path = os.path.join(
-        UPLOAD_FOLDER,
-        file.filename
-    )
-
-    # --------------------------------------
-    # Save audio
-    # --------------------------------------
-
-    with open(
-        file_path,
-        "wb"
-    ) as buffer:
-
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
+    file_path = save_uploaded_audio(file)
 
     print("✅ File saved:", file_path)
 
-    # --------------------------------------
-    # Process audio directly
-    # --------------------------------------
+    try:
 
-    print("🤖 Calling process_audio()")
+        transcript = transcribe_audio(file_path)
 
-    result = process_audio(
-        file_path
-    )
+    except Exception as exc:
 
-    print("✅ process_audio finished")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Transcription failed: {exc}"
+        ) from exc
 
-    return result
+    return {
+        "status": "success",
+        "transcript": transcript,
+        "message": "Audio uploaded and transcribed. Use /extract-crm with the final edited transcript.",
+    }
 
 
 # ==========================================
