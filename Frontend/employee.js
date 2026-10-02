@@ -36,6 +36,21 @@ const crmStatus = document.getElementById("crmStatus");
 const recordAgainBtn = document.getElementById("recordAgainBtn");
 const submitReportBtn = document.getElementById("submitReportBtn");
 
+// =====================================
+// LOCATION ELEMENTS
+// =====================================
+
+const locationStatus = document.getElementById("locationStatus");
+const locationDetails = document.getElementById("locationDetails");
+
+const latitudeValue = document.getElementById("latitudeValue");
+const longitudeValue = document.getElementById("longitudeValue");
+const accuracyValue = document.getElementById("accuracyValue");
+
+const visitLocationResult = document.getElementById("visitLocationResult");
+const savedLocationText = document.getElementById("savedLocationText");
+const visitMap = document.getElementById("visitMap");
+
 
 // =====================================
 // CRM FIELDS TO DISPLAY
@@ -98,6 +113,17 @@ let currentAudioObjectUrl = "";
 
 let currentCrmData = null;
 let currentMissingFieldKeys = [];
+
+// =====================================
+// LOCATION STATE
+// =====================================
+
+let visitLatitude = null;
+let visitLongitude = null;
+let visitAccuracy = null;
+
+let visitMapInstance = null;
+let visitMarker = null;
 
 
 // =====================================
@@ -220,6 +246,80 @@ function clearAudioState({ clearFile = false } = {}) {
 // =====================================
 // RESET CRM STATE
 // =====================================
+// =====================================
+// CAPTURE VISIT LOCATION
+// =====================================
+
+function captureVisitLocation() {
+
+    // Check if browser supports location
+    if (!navigator.geolocation) {
+
+        locationStatus.textContent =
+            "❌ Location is not supported by this browser.";
+
+        return;
+    }
+
+    locationStatus.textContent =
+        "📍 Getting your current location...";
+
+    // Ask browser for current GPS location
+    navigator.geolocation.getCurrentPosition(
+
+        // SUCCESS
+        (position) => {
+
+            visitLatitude = position.coords.latitude;
+            visitLongitude = position.coords.longitude;
+            visitAccuracy = position.coords.accuracy;
+
+            // Show location on screen
+            latitudeValue.textContent =
+                visitLatitude.toFixed(6);
+
+            longitudeValue.textContent =
+                visitLongitude.toFixed(6);
+
+            accuracyValue.textContent =
+                `${Math.round(visitAccuracy)} meters`;
+
+            locationDetails.classList.remove("hidden");
+
+            locationStatus.textContent =
+                "✅ Visit location captured successfully.";
+
+            console.log("📍 Location captured:", {
+                latitude: visitLatitude,
+                longitude: visitLongitude,
+                accuracy: visitAccuracy
+            });
+        },
+
+        // ERROR
+        (error) => {
+
+            console.error(
+                "Location error:",
+                error
+            );
+
+            locationStatus.textContent =
+                "⚠️ Could not capture location. Please allow location permission.";
+
+            locationDetails.classList.add("hidden");
+        },
+
+        // OPTIONS
+        {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        }
+    );
+}
+
+
 
 function resetCRMState() {
 
@@ -261,6 +361,27 @@ function resetEntireWorkflow() {
     });
 
     resetCRMState();
+
+visitLatitude = null;
+visitLongitude = null;
+visitAccuracy = null;
+
+locationStatus.textContent =
+    "📍 Location will be captured automatically when you start recording.";
+
+locationDetails.classList.add("hidden");
+
+latitudeValue.textContent = "---";
+longitudeValue.textContent = "---";
+accuracyValue.textContent = "---";
+
+visitLocationResult.classList.add("hidden");
+
+if (visitMapInstance) {
+    visitMapInstance.remove();
+    visitMapInstance = null;
+    visitMarker = null;
+}
 }
 
 
@@ -509,6 +630,8 @@ recordBtn.addEventListener(
         try {
 
             resetEntireWorkflow();
+            // Capture employee's current visit location
+            captureVisitLocation();
 
 
             const stream =
@@ -966,6 +1089,9 @@ form.addEventListener(
 // =====================================
 // SUBMIT FINAL CRM REPORT
 // =====================================
+// =====================================
+
+
 
 submitReportBtn.addEventListener(
     "click",
@@ -1027,6 +1153,28 @@ submitReportBtn.addEventListener(
         // ---------------------------------
         // SAVE
         // ---------------------------------
+
+        // ---------------------------------
+// ADD VISIT LOCATION
+// ---------------------------------
+
+if (currentCrmData) {
+
+    currentCrmData.Latitude =
+        visitLatitude !== null
+            ? visitLatitude
+            : "-";
+
+    currentCrmData.Longitude =
+        visitLongitude !== null
+            ? visitLongitude
+            : "-";
+
+    currentCrmData.Location_Accuracy =
+        visitAccuracy !== null
+            ? Math.round(visitAccuracy)
+            : "-";
+}
 
         console.log(
             "💾 Saving final CRM report..."
@@ -1168,7 +1316,57 @@ submitReportBtn.addEventListener(
             success.classList.remove(
                 "hidden"
             );
+        // =====================================
+// SHOW VISIT LOCATION ON MAP
+// =====================================
 
+if (
+    visitLatitude !== null &&
+    visitLongitude !== null &&
+    typeof L !== "undefined"
+) {
+
+    visitLocationResult.classList.remove("hidden");
+
+    savedLocationText.textContent =
+        `Latitude: ${visitLatitude.toFixed(6)}, Longitude: ${visitLongitude.toFixed(6)} | Accuracy: ${Math.round(visitAccuracy)} meters`;
+
+    // Remove old map if it already exists
+    if (visitMapInstance) {
+        visitMapInstance.remove();
+        visitMapInstance = null;
+        visitMarker = null;
+    }
+
+    // Create map
+    visitMapInstance = L.map("visitMap").setView(
+        [visitLatitude, visitLongitude],
+        16
+    );
+
+    // OpenStreetMap layer
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap contributors"
+        }
+    ).addTo(visitMapInstance);
+
+    // Add marker
+    visitMarker = L.marker([
+        visitLatitude,
+        visitLongitude
+    ])
+        .addTo(visitMapInstance)
+        .bindPopup("📍 Visit Location")
+        .openPopup();
+
+    // Fix map rendering after hidden section becomes visible
+    setTimeout(() => {
+        visitMapInstance.invalidateSize();
+    }, 200);
+}
 
             setCrmStatus(
                 "✅ Report saved successfully to Supabase.",

@@ -12,6 +12,11 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
         rel="stylesheet"
     >
+    <!-- Leaflet Map CSS -->
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 </head>
 
 <body>
@@ -94,6 +99,40 @@
                         >
 
                     </div>
+                    <!-- ================================= -->
+<!-- VISIT LOCATION -->
+<!-- ================================= -->
+
+<div class="field-group">
+
+    <label>
+        Visit Location
+    </label>
+
+    <div id="locationStatus" class="location-status">
+        📍 Location will be captured automatically when you start recording.
+    </div>
+
+    <div id="locationDetails" class="location-details hidden">
+
+        <p>
+            <strong>Latitude:</strong>
+            <span id="latitudeValue">---</span>
+        </p>
+
+        <p>
+            <strong>Longitude:</strong>
+            <span id="longitudeValue">---</span>
+        </p>
+
+        <p>
+            <strong>Accuracy:</strong>
+            <span id="accuracyValue">---</span>
+        </p>
+
+    </div>
+
+</div>
 
 
 
@@ -344,6 +383,28 @@
                             ---
                         </span>
                     </strong>
+                    <div id="visitLocationResult" class="visit-location-result hidden">
+
+    <h3>
+        📍 Visit Location
+    </h3>
+
+    <p id="savedLocationText">
+        Location captured successfully.
+    </p>
+
+    <div
+        id="visitMap"
+        style="
+            width: 100%;
+            height: 350px;
+            margin-top: 15px;
+            border-radius: 14px;
+            overflow: hidden;
+        "
+    ></div>
+
+</div>
 
                 </div>
 
@@ -356,7 +417,9 @@
 
     <!-- JAVASCRIPT -->
 
-    <script src="employee.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="employee.js"></script>
 
 </body>
 </html>
