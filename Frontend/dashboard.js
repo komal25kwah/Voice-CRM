@@ -765,17 +765,45 @@ function renderVisitLocationMap(record) {
 
 
     // ==================================
-    // FIX MAP SIZE INSIDE MODAL
-    // ==================================
+// FIX MAP SIZE INSIDE MODAL
+// ==================================
 
-    setTimeout(() => {
+const fixMapSize = () => {
 
-        if (visitMapInstance) {
+    if (!visitMapInstance) {
+        return;
+    }
 
-            visitMapInstance.invalidateSize();
+    visitMapInstance.invalidateSize(true);
+
+    visitMapInstance.setView(
+        [latitude, longitude],
+        16,
+        {
+            animate: false
         }
+    );
+};
 
-    }, 200);
+
+// Run after the modal has become visible
+requestAnimationFrame(() => {
+
+    requestAnimationFrame(() => {
+
+        fixMapSize();
+
+    });
+
+});
+
+
+// Run again after the browser finishes layout
+setTimeout(fixMapSize, 150);
+
+setTimeout(fixMapSize, 400);
+
+setTimeout(fixMapSize, 800);
 }
 
 
