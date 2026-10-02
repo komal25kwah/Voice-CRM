@@ -4,6 +4,7 @@
 
 const API_URL = "https://voice-crm-mehd.onrender.com/records";
 
+
 // ======================================
 // DOM ELEMENTS
 // ======================================
@@ -21,7 +22,16 @@ const modal = document.getElementById("detailsModal");
 const modalBody = document.getElementById("modalBody");
 const closeBtn = document.querySelector(".close");
 
+
 let allRecords = [];
+
+
+// ======================================
+// MANAGER MAP VARIABLES
+// ======================================
+
+let visitMapInstance = null;
+let visitMarker = null;
 
 
 // ======================================
@@ -134,7 +144,6 @@ async function loadRecords() {
             throw new Error("Backend returned an empty response.");
         }
 
-
         if (!Array.isArray(result.data)) {
 
             console.error(
@@ -164,9 +173,7 @@ async function loadRecords() {
         // ==================================
 
         populateTable(allRecords);
-
         updateCards(allRecords);
-
 
     } catch (error) {
 
@@ -176,30 +183,20 @@ async function loadRecords() {
 
         console.error(error);
 
-
         allRecords = [];
 
         populateTable([]);
-
         updateCards([]);
-
-
-        // ==================================
-        // USER MESSAGE
-        // ==================================
 
         alert(
             "Unable to load CRM records.\n\n" +
-            "Please make sure the FastAPI backend is running on:\n" +
-            "http://127.0.0.1:8000\n\n" +
+            "Please check that the backend is running.\n\n" +
             "Check the browser Console for the exact error."
         );
-
 
     } finally {
 
         if (refreshBtn) {
-
             refreshBtn.disabled = false;
             refreshBtn.textContent = "Refresh";
         }
@@ -214,12 +211,13 @@ async function loadRecords() {
 function populateTable(records) {
 
     if (!tableBody) {
+
         console.error(
             "❌ tableBody element not found."
         );
+
         return;
     }
-
 
     tableBody.innerHTML = "";
 
@@ -268,7 +266,6 @@ function populateTable(records) {
                 ? String(rawStatus).trim().toLowerCase()
                 : "";
 
-
         if (status === "negotiation") {
 
             badgeClass = "negotiation";
@@ -304,7 +301,6 @@ function populateTable(records) {
         // ==================================
 
         const row = document.createElement("tr");
-
 
         row.innerHTML = `
 
@@ -357,7 +353,6 @@ function populateTable(records) {
         const viewButton =
             row.querySelector(".view-btn");
 
-
         if (viewButton) {
 
             viewButton.addEventListener(
@@ -368,7 +363,6 @@ function populateTable(records) {
                 }
             );
         }
-
 
         tableBody.appendChild(row);
     });
@@ -410,9 +404,7 @@ function updateCards(records) {
             )
                 .trim()
                 .toLowerCase() === "negotiation";
-
         });
-
 
     if (negotiationCount) {
 
@@ -445,7 +437,6 @@ function updateCards(records) {
                 )
         );
 
-
     if (companyCount) {
 
         companyCount.textContent =
@@ -462,7 +453,6 @@ function updateCards(records) {
             .toISOString()
             .split("T")[0];
 
-
     const todayCount =
         safeRecords.filter((record) => {
 
@@ -473,9 +463,7 @@ function updateCards(records) {
             return String(
                 record.Created_Date
             ).substring(0, 10) === today;
-
         });
-
 
     if (todayReports) {
 
@@ -500,14 +488,11 @@ if (searchInput) {
                     .trim()
                     .toLowerCase();
 
-
             if (!value) {
 
                 populateTable(allRecords);
-
                 return;
             }
-
 
             const filtered =
                 allRecords.filter((record) => {
@@ -515,25 +500,16 @@ if (searchInput) {
                     const searchableFields = [
 
                         record.Company,
-
                         record.Record_ID,
-
                         record.Created_By,
-
                         record.NameDesignationofPersonMet,
-
                         record.Item_Type,
-
                         record.DateofVisit,
-
                         record.SPANCOP_Status,
-
                         record.ObjectiveofVisit,
-
                         record.RemarksWayForward
 
                     ];
-
 
                     return searchableFields
                         .filter(
@@ -548,7 +524,6 @@ if (searchInput) {
                                     .includes(value)
                         );
                 });
-
 
             populateTable(filtered);
         }
@@ -573,6 +548,234 @@ if (refreshBtn) {
             loadRecords();
         }
     );
+}
+
+
+// ======================================
+// RENDER VISIT LOCATION MAP
+// ======================================
+
+function renderVisitLocationMap(record) {
+
+    const latitude = parseFloat(record.Latitude);
+    const longitude = parseFloat(record.Longitude);
+    const accuracy = parseFloat(record.Location_Accuracy);
+
+
+    // ==================================
+    // CHECK VALID LOCATION
+    // ==================================
+
+    const hasValidLocation =
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude) &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180;
+
+
+    // ==================================
+    // LOCATION SECTION
+    // ==================================
+
+    const locationSection =
+        document.createElement("div");
+
+    locationSection.className =
+        "visit-location-section";
+
+
+    const heading =
+        document.createElement("h3");
+
+    heading.textContent =
+        "📍 Visit Location";
+
+    locationSection.appendChild(heading);
+
+
+    // ==================================
+    // NO LOCATION
+    // ==================================
+
+    if (!hasValidLocation) {
+
+        const message =
+            document.createElement("p");
+
+        message.textContent =
+            "Location not available for this visit.";
+
+        locationSection.appendChild(message);
+
+        modalBody.appendChild(locationSection);
+
+        return;
+    }
+
+
+    // ==================================
+    // ACCURACY
+    // ==================================
+
+    const locationInfo =
+        document.createElement("p");
+
+    if (
+        Number.isFinite(accuracy) &&
+        accuracy > 0
+    ) {
+
+        locationInfo.textContent =
+            `Accuracy: approximately ${Math.round(accuracy)} meters`;
+
+    } else {
+
+        locationInfo.textContent =
+            "Accuracy not available";
+    }
+
+    locationSection.appendChild(locationInfo);
+
+
+    // ==================================
+    // MAP CONTAINER
+    // ==================================
+
+    const mapContainer =
+        document.createElement("div");
+
+    mapContainer.id =
+        "managerVisitMap";
+
+    mapContainer.style.width =
+        "100%";
+
+    mapContainer.style.height =
+        "350px";
+
+    mapContainer.style.marginTop =
+        "15px";
+
+    mapContainer.style.borderRadius =
+        "14px";
+
+    mapContainer.style.overflow =
+        "hidden";
+
+    locationSection.appendChild(
+        mapContainer
+    );
+
+    modalBody.appendChild(
+        locationSection
+    );
+
+
+    // ==================================
+    // CHECK LEAFLET
+    // ==================================
+
+    if (typeof L === "undefined") {
+
+        mapContainer.innerHTML =
+            "<p style='padding:16px;'>Map library could not be loaded.</p>";
+
+        return;
+    }
+
+
+    // ==================================
+    // REMOVE OLD MAP
+    // ==================================
+
+    if (visitMapInstance) {
+
+        visitMapInstance.remove();
+
+        visitMapInstance = null;
+        visitMarker = null;
+    }
+
+
+    // ==================================
+    // CREATE MAP
+    // ==================================
+
+    visitMapInstance =
+        L.map("managerVisitMap")
+            .setView(
+                [latitude, longitude],
+                16
+            );
+
+
+    // ==================================
+    // OPENSTREETMAP TILES
+    // ==================================
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                "&copy; OpenStreetMap contributors"
+        }
+    ).addTo(
+        visitMapInstance
+    );
+
+
+    // ==================================
+    // LOCATION MARKER
+    // ==================================
+
+    visitMarker =
+        L.marker(
+            [latitude, longitude]
+        )
+            .addTo(
+                visitMapInstance
+            )
+            .bindPopup(
+                "📍 Employee Visit Location"
+            )
+            .openPopup();
+
+
+    // ==================================
+    // ACCURACY CIRCLE
+    // ==================================
+
+    if (
+        Number.isFinite(accuracy) &&
+        accuracy > 0
+    ) {
+
+        L.circle(
+            [latitude, longitude],
+            {
+                radius: accuracy
+            }
+        ).addTo(
+            visitMapInstance
+        );
+    }
+
+
+    // ==================================
+    // FIX MAP SIZE INSIDE MODAL
+    // ==================================
+
+    setTimeout(() => {
+
+        if (visitMapInstance) {
+
+            visitMapInstance.invalidateSize();
+        }
+
+    }, 200);
 }
 
 
@@ -617,9 +820,24 @@ function showDetails(id) {
     }
 
 
-    modal.style.display = "block";
+    // ==================================
+    // REMOVE PREVIOUS MAP
+    // ==================================
 
-    modalBody.innerHTML = "";
+    if (visitMapInstance) {
+
+        visitMapInstance.remove();
+
+        visitMapInstance = null;
+        visitMarker = null;
+    }
+
+
+    modal.style.display =
+        "block";
+
+    modalBody.innerHTML =
+        "";
 
 
     // ==================================
@@ -627,6 +845,18 @@ function showDetails(id) {
     // ==================================
 
     Object.keys(record).forEach((key) => {
+
+        // Don't show raw coordinates as normal rows.
+        // They will be shown visually on the map instead.
+
+        if (
+            key === "Latitude" ||
+            key === "Longitude" ||
+            key === "Location_Accuracy"
+        ) {
+            return;
+        }
+
 
         const row =
             document.createElement("div");
@@ -650,6 +880,13 @@ function showDetails(id) {
 
         modalBody.appendChild(row);
     });
+
+
+    // ==================================
+    // SHOW MANAGER-ONLY MAP
+    // ==================================
+
+    renderVisitLocationMap(record);
 }
 
 
@@ -657,13 +894,31 @@ function showDetails(id) {
 // CLOSE MODAL
 // ======================================
 
+function closeDetailsModal() {
+
+    if (modal) {
+
+        modal.style.display =
+            "none";
+    }
+
+    if (visitMapInstance) {
+
+        visitMapInstance.remove();
+
+        visitMapInstance = null;
+        visitMarker = null;
+    }
+}
+
+
 if (closeBtn) {
 
     closeBtn.addEventListener(
         "click",
         () => {
 
-            modal.style.display = "none";
+            closeDetailsModal();
         }
     );
 }
@@ -682,8 +937,7 @@ window.addEventListener(
             event.target === modal
         ) {
 
-            modal.style.display =
-                "none";
+            closeDetailsModal();
         }
     }
 );
@@ -702,8 +956,7 @@ document.addEventListener(
             modal
         ) {
 
-            modal.style.display =
-                "none";
+            closeDetailsModal();
         }
     }
 );
