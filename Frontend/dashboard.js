@@ -2,7 +2,7 @@
 // Voice CRM Dashboard
 // ======================================
 
-const API_URL = "http://127.0.0.1:8000/records";
+const API_URL = "https://voice-crm-mehd.onrender.com/records";
 
 // ======================================
 // DOM ELEMENTS
