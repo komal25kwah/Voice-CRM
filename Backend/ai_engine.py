@@ -58,6 +58,9 @@ CRM_FIELDS: Tuple[str, ...] = (
     "Item_Type",
     "Path",
     "Record_ID",
+    "Latitude",
+    "Longitude",
+    "Location_Accuracy",
 )
 
 REQUIRED_FIELDS: Tuple[Tuple[str, str], ...] = (
