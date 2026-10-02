@@ -10,7 +10,7 @@ Instead of manually filling lengthy CRM forms or Excel sheets, an employee can r
 
 The system:
 
-1. Records or uploads the employee's audio.
+1. Records or uploads the employee's audio.   
 2. Converts speech into text using AI.
 3. Converts the transcript into clear English.
 4. Allows the employee to review and edit the English transcript.

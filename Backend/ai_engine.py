@@ -267,6 +267,7 @@ Rules:
 - Use only the transcript provided below.
 - Do not invent information.
 - Keep names, company names, medicine names, dates, and numbers exactly as spoken when possible.
+- ObjectiveofVisit may be inferred from the overall context of the transcript when it is not explicitly stated.
 - Return strict JSON only.
 - Use null for any missing field.
 - Never use "could not extract", "N/A", or "unknown" for required values.
