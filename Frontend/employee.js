@@ -366,32 +366,57 @@ function renderCrmSummary(data) {
     const summaryHtml = SUMMARY_FIELDS.map(
         ([key, label]) => {
 
-            const rawValue = data?.[key];
+            const rawValue = data?.[key] ?? "";
 
             const isMissing =
                 rawValue === null ||
                 rawValue === undefined ||
                 String(rawValue).trim() === "";
 
-            const value = isMissing
-                ? "Not extracted"
-                : escapeHtml(rawValue);
+            const missingClass = isMissing
+                ? " is-missing"
+                : "";
 
-            const missingClass =
-                isMissing
-                    ? " is-missing"
-                    : "";
+            // Longer text fields are easier to edit in a textarea
+            const longTextFields = [
+                "ObjectiveofVisit",
+                "CommercialOfferingBy_Competition",
+                "RemarksWayForward",
+                "MOMActionItems"
+            ];
+
+            const inputHtml = longTextFields.includes(key)
+                ? `
+                    <textarea
+                        id="crm-edit-${key}"
+                        class="crm-edit-input${missingClass}"
+                        data-crm-key="${key}"
+                        rows="3"
+                        placeholder="Not extracted"
+                    >${escapeHtml(rawValue)}</textarea>
+                `
+                : `
+                    <input
+                        type="text"
+                        id="crm-edit-${key}"
+                        class="crm-edit-input${missingClass}"
+                        data-crm-key="${key}"
+                        value="${escapeHtml(rawValue)}"
+                        placeholder="Not extracted"
+                    >
+                `;
 
             return `
                 <div class="summary-item">
 
-                    <span class="summary-label">
+                    <label
+                        class="summary-label"
+                        for="crm-edit-${key}"
+                    >
                         ${escapeHtml(label)}
-                    </span>
+                    </label>
 
-                    <div class="summary-value${missingClass}">
-                        ${value}
-                    </div>
+                    ${inputHtml}
 
                 </div>
             `;
@@ -400,7 +425,6 @@ function renderCrmSummary(data) {
 
     crmSummary.innerHTML = summaryHtml;
 }
-
 
 // =====================================
 // RENDER MISSING FIELDS
@@ -502,6 +526,27 @@ function getManualFields() {
     );
 
     return manualFields;
+}
+
+// =====================================
+// GET EDITED CRM FIELDS
+// =====================================
+
+function getEditedCrmFields() {
+
+    const editedData = {};
+
+    document
+        .querySelectorAll("[data-crm-key]")
+        .forEach((input) => {
+
+            const key = input.dataset.crmKey;
+            const value = input.value.trim();
+
+            editedData[key] = value || null;
+        });
+
+    return editedData;
 }
 
 
@@ -1115,16 +1160,28 @@ submitReportBtn.addEventListener(
         const manualFields =
             getManualFields();
 
+        // ---------------------------------
+       // GET EMPLOYEE EDITED CRM VALUES
+      // ---------------------------------
+
+      const editedCrmFields = getEditedCrmFields();
+
+               currentCrmData = {
+                                  ...currentCrmData,
+                                  ...editedCrmFields
+                               };
+
 
         // ---------------------------------
         // CHECK STILL MISSING
         // ---------------------------------
 
         const missingInputs =
-            currentMissingFieldKeys.filter(
-                (fieldKey) =>
-                    !manualFields[fieldKey]
-            );
+    currentMissingFieldKeys.filter(
+        (fieldKey) =>
+            !currentCrmData[fieldKey] &&
+            !manualFields[fieldKey]
+    );
 
 
         if (
