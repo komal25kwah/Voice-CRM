@@ -2,6 +2,7 @@ import json
 import os
 import re
 import uuid
+import sqlite3
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -20,7 +21,52 @@ API_KEY = os.getenv("OPENAI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+DATABASE_TYPE = os.getenv("DATABASE_TYPE", "supabase").strip().lower()
+SQLITE_DB_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "voice_crm.db"
+)
 
+def initialize_sqlite():
+    connection = sqlite3.connect(SQLITE_DB_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS crm_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Record_ID TEXT UNIQUE,
+            Created_By TEXT,
+            Company TEXT,
+            Attendees TEXT,
+            DateofVisit TEXT,
+            ObjectiveofVisit TEXT,
+            NameDesignationofPersonMet TEXT,
+            Current_Consumption TEXT,
+            PotentialAccountVol_CM TEXT,
+            Current_Supplier TEXT,
+            CommercialOfferingBy_Competition TEXT,
+            RemarksWayForward TEXT,
+            MOMActionItems TEXT,
+            SPANCOP_Status TEXT,
+            Created_Date TEXT,
+            CompanyCustomerCode TEXT,
+            Company_Segment TEXT,
+            CompanyCustomerSince TEXT,
+            Sub_Department TEXT,
+            Item_Type TEXT,
+            Path TEXT,
+            Latitude REAL,
+            Longitude REAL,
+            Location_Accuracy REAL
+        )
+    """)
+
+    connection.commit()
+    connection.close()
+
+initialize_sqlite()
+
+print("SUPABASE URL BEING USED:", SUPABASE_URL)
 # ==========================================
 # CLIENTS
 # ==========================================
@@ -71,6 +117,7 @@ REQUIRED_FIELDS: Tuple[Tuple[str, str], ...] = (
 
 MISSING_SENTINELS = {
     "",
+    "-",
     "could not extract",
     "n/a",
     "na",
@@ -194,6 +241,35 @@ def _save_to_supabase(record: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(inserted, dict):
             return inserted
     return record
+
+def _save_to_sqlite(record: Dict[str, Any]) -> Dict[str, Any]:
+    connection = sqlite3.connect(SQLITE_DB_PATH)
+    cursor = connection.cursor()
+
+    fields = list(CRM_FIELDS)
+    placeholders = ", ".join(["?"] * len(fields))
+    columns = ", ".join(fields)
+
+    values = [record.get(field) for field in fields]
+
+    cursor.execute(
+        f"INSERT INTO crm_reports ({columns}) VALUES ({placeholders})",
+        values
+    )
+
+    connection.commit()
+    connection.close()
+
+    return record
+
+
+def _save_record(record: Dict[str, Any]) -> Dict[str, Any]:
+    if DATABASE_TYPE == "sqlite":
+        print("💾 Saving record to SQLite")
+        return _save_to_sqlite(record)
+
+    print("☁️ Saving record to Supabase")
+    return _save_to_supabase(record)
 
 
 def _require_openai_client() -> Any:
@@ -369,10 +445,10 @@ def _finalize_record(record: Dict[str, Any], employee_name: str = "") -> Dict[st
         }
 
     _save_json_snapshot(finalized_record)
-    inserted_record = _save_to_supabase(finalized_record)
+    inserted_record = _save_record(finalized_record)
 
-    print("🔹 STEP 6: Supabase save complete")
-    print("✅ Data saved to Supabase successfully")
+    print(f"🔹 STEP 6: {DATABASE_TYPE.upper()} save complete")
+    print(f"✅ Data saved to {DATABASE_TYPE.upper()} successfully")
 
     return {
         "status": "success",
@@ -475,8 +551,31 @@ def process_audio(
     return review
 
 
+def _get_all_records_from_sqlite() -> List[Dict[str, Any]]:
+    connection = sqlite3.connect(SQLITE_DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM crm_reports ORDER BY Created_Date DESC, id DESC")
+    rows = cursor.fetchall()
+    connection.close()
+
+    records: List[Dict[str, Any]] = []
+    for row in rows:
+        record = dict(row)
+        record.pop("id", None)
+        records.append(record)
+
+    return records
+
+
 def get_all_records() -> List[Dict[str, Any]]:
     try:
+        if DATABASE_TYPE == "sqlite":
+            print("💾 Fetching records from SQLite")
+            return _get_all_records_from_sqlite()
+
+        print("☁️ Fetching records from Supabase")
         supabase_client = _require_supabase_client()
         response = (
             supabase_client.table("crm_reports")
@@ -485,6 +584,7 @@ def get_all_records() -> List[Dict[str, Any]]:
             .execute()
         )
         return response.data or []
+
     except Exception as exc:
         print("\n❌ Error fetching records:")
         print(type(exc).__name__)

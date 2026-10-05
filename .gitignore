@@ -25,4 +25,6 @@ Backend/output/
 Thumbs.db
 
 # Logs
-*.log
+*.logBackend/voice_crm.db
+
+Backend/voice_crm.db

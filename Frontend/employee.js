@@ -573,7 +573,9 @@ function showCrmReview(
     }
 }
 
-
+let currentLatitude = null;
+let currentLongitude = null;
+let currentLocationAccuracy = null;
 // =====================================
 // START RECORDING
 // =====================================
@@ -587,6 +589,29 @@ recordBtn.addEventListener(
             resetEntireWorkflow();
             // Capture employee's current visit location
             captureVisitLocation();
+
+            const position = await new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+});
+
+currentLatitude = position.coords.latitude;
+currentLongitude = position.coords.longitude;
+currentLocationAccuracy = position.coords.accuracy;
+
+console.log(
+    "Location:",
+    currentLatitude,
+    currentLongitude,
+    currentLocationAccuracy
+);
 
 
             const stream =
@@ -954,6 +979,13 @@ form.addEventListener(
                 "Calling /process-transcript..."
             );
 
+            console.log(
+    "Location being sent to backend:",
+    currentLatitude,
+    currentLongitude,
+    currentLocationAccuracy
+);
+
 
             const crmResponse =
                 await fetch(
@@ -968,12 +1000,21 @@ form.addEventListener(
 
                         body: JSON.stringify({
 
-                            employee_name:
-                                employeeName.value.trim(),
+    employee_name:
+        employeeName.value.trim(),
 
-                            transcript:
-                                data.transcript
-                        })
+    transcript:
+        data.transcript,
+
+    Latitude:
+        currentLatitude,
+
+    Longitude:
+        currentLongitude,
+
+    Location_Accuracy:
+        currentLocationAccuracy
+})
                     }
                 );
 
@@ -997,6 +1038,10 @@ form.addEventListener(
                 "CRM extraction response:",
                 crmData
             );
+
+            crmData.data.Latitude = currentLatitude;
+            crmData.data.Longitude = currentLongitude;
+            crmData.data.Location_Accuracy = currentLocationAccuracy;
 
 
             // ---------------------------------
@@ -1134,6 +1179,13 @@ if (currentCrmData) {
         console.log(
             "💾 Saving final CRM report..."
         );
+
+        console.log(
+    "Location inside currentCrmData before save:",
+    currentCrmData?.Latitude,
+    currentCrmData?.Longitude,
+    currentCrmData?.Location_Accuracy
+);
 
 
         submitReportBtn.disabled = true;

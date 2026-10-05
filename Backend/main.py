@@ -66,6 +66,10 @@ class TranscriptRequest(BaseModel):
     transcript: str = Field(...)
     employee_name: str = ""
 
+    Latitude: float | None = None
+    Longitude: float | None = None
+    Location_Accuracy: float | None = None
+
 
 class FinalizeRequest(BaseModel):
 
@@ -185,6 +189,10 @@ async def extract_crm(request: TranscriptRequest):
             employee_name=request.employee_name
         )
 
+        result["Latitude"] = request.Latitude
+        result["Longitude"] = request.Longitude
+        result["Location_Accuracy"] = request.Location_Accuracy
+
     except Exception as exc:
 
         raise HTTPException(
@@ -236,6 +244,10 @@ async def process_transcript(request: TranscriptRequest):
     print("\n----------- FINAL EDITED TRANSCRIPT -----------")
     print(request.transcript)
     print("----------------------------------------------\n")
+    print("📍 RECEIVED LOCATION:")
+    print("Latitude:", request.Latitude)
+    print("Longitude:", request.Longitude)
+    print("Accuracy:", request.Location_Accuracy)
 
     if not request.transcript.strip():
         raise HTTPException(
