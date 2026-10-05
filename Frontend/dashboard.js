@@ -730,23 +730,9 @@ function renderVisitLocationMap(record) {
 // PROFESSIONAL VISIT MARKER
 // ==================================
 
-const visitIcon = L.divIcon({
-    className: "custom-visit-marker",
-    html: `
-        <div class="visit-pin">
-            <div class="visit-pin-dot"></div>
-        </div>
-    `,
-    iconSize: [42, 42],
-    iconAnchor: [21, 42]
-});
-
-visitMarker =
-    L.marker(
-        [latitude, longitude],
-        { icon: visitIcon }
-    )
-    .addTo(visitMapInstance);
+visitMarker = L.marker(
+    [latitude, longitude]
+).addTo(visitMapInstance);
  
 
 
