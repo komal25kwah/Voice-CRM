@@ -726,22 +726,29 @@ function renderVisitLocationMap(record) {
         visitMapInstance
     );
 
+// ==================================
+// PROFESSIONAL VISIT MARKER
+// ==================================
 
-    // ==================================
-    // LOCATION MARKER
-    // ==================================
+const visitIcon = L.divIcon({
+    className: "custom-visit-marker",
+    html: `
+        <div class="visit-pin">
+            <div class="visit-pin-dot"></div>
+        </div>
+    `,
+    iconSize: [42, 42],
+    iconAnchor: [21, 42]
+});
 
-    visitMarker =
-        L.marker(
-            [latitude, longitude]
-        )
-            .addTo(
-                visitMapInstance
-            )
-            .bindPopup(
-                "📍 Employee Visit Location"
-            )
-            .openPopup();
+visitMarker =
+    L.marker(
+        [latitude, longitude],
+        { icon: visitIcon }
+    )
+    .addTo(visitMapInstance);
+ 
+
 
 
     // ==================================
@@ -753,14 +760,19 @@ function renderVisitLocationMap(record) {
         accuracy > 0
     ) {
 
-        L.circle(
-            [latitude, longitude],
-            {
-                radius: accuracy
-            }
-        ).addTo(
-            visitMapInstance
-        );
+       L.circle(
+    [latitude, longitude],
+    {
+        radius: accuracy,
+        color: "#0057B8",
+        weight: 1.5,
+        opacity: 0.55,
+        fillColor: "#00AEEF",
+        fillOpacity: 0.10
+    }
+).addTo(
+    visitMapInstance
+);
     }
 
 
@@ -774,7 +786,10 @@ const fixMapSize = () => {
         return;
     }
 
-    visitMapInstance.invalidateSize(true);
+    visitMapInstance.invalidateSize({
+        pan: false,
+        animate: false
+    });
 
     visitMapInstance.setView(
         [latitude, longitude],
@@ -783,6 +798,12 @@ const fixMapSize = () => {
             animate: false
         }
     );
+
+    visitMapInstance.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer) {
+            layer.redraw();
+        }
+    });
 };
 
 
